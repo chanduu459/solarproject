@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/issue_report_model.dart';
 
@@ -11,12 +12,13 @@ class IssueReportService {
     required String issueType,
     required String description,
     String priority = 'medium',
+    String? reportedBy,
     List<String>? imageUrls,
     double? latitude,
     double? longitude,
   }) async {
     try {
-      final issueData = {
+      final issueData = <String, dynamic>{
         'job_id': jobId,
         'worker_id': workerId,
         'issue_type': issueType,
@@ -24,21 +26,26 @@ class IssueReportService {
         'priority': priority,
         'status': 'open',
         'reported_at': DateTime.now().toIso8601String(),
+        'reported_by': reportedBy,
         'image_urls': imageUrls,
         'latitude': latitude,
         'longitude': longitude,
       };
 
+      debugPrint('Creating issue report with data: $issueData');
+
       final response = await _supabase
           .from('issue_reports')
           .insert(issueData)
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .single();
+
+      debugPrint('Issue report created successfully: ${response['id']}');
 
       // Transform the response to include joined data
       final transformedJson = Map<String, dynamic>.from(response);
-      if (response['workers'] != null) {
-        transformedJson['worker_name'] = response['workers']['full_name'];
+      if (response['workers!issue_reports_worker_id_fkey'] != null) {
+        transformedJson['worker_name'] = response['workers!issue_reports_worker_id_fkey']['full_name'];
       }
       if (response['jobs'] != null && response['jobs']['customers'] != null) {
         transformedJson['customer_name'] = response['jobs']['customers']['full_name'];
@@ -55,14 +62,14 @@ class IssueReportService {
     try {
       final response = await _supabase
           .from('issue_reports')
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .eq('id', issueId)
           .single();
 
       if (response != null) {
         final transformedJson = Map<String, dynamic>.from(response);
-        if (response['workers'] != null) {
-          transformedJson['worker_name'] = response['workers']['full_name'];
+        if (response['workers!issue_reports_worker_id_fkey'] != null) {
+          transformedJson['worker_name'] = response['workers!issue_reports_worker_id_fkey']['full_name'];
         }
         if (response['jobs'] != null && response['jobs']['customers'] != null) {
           transformedJson['customer_name'] = response['jobs']['customers']['full_name'];
@@ -80,13 +87,13 @@ class IssueReportService {
     try {
       final response = await _supabase
           .from('issue_reports')
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .order('reported_at', ascending: false);
 
       return response.map((json) {
         final transformedJson = Map<String, dynamic>.from(json);
-        if (json['workers'] != null) {
-          transformedJson['worker_name'] = json['workers']['full_name'];
+        if (json['workers!issue_reports_worker_id_fkey'] != null) {
+          transformedJson['worker_name'] = json['workers!issue_reports_worker_id_fkey']['full_name'];
         }
         if (json['jobs'] != null && json['jobs']['customers'] != null) {
           transformedJson['customer_name'] = json['jobs']['customers']['full_name'];
@@ -103,14 +110,14 @@ class IssueReportService {
     try {
       final response = await _supabase
           .from('issue_reports')
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .eq('worker_id', workerId)
           .order('reported_at', ascending: false);
 
       return response.map((json) {
         final transformedJson = Map<String, dynamic>.from(json);
-        if (json['workers'] != null) {
-          transformedJson['worker_name'] = json['workers']['full_name'];
+        if (json['workers!issue_reports_worker_id_fkey'] != null) {
+          transformedJson['worker_name'] = json['workers!issue_reports_worker_id_fkey']['full_name'];
         }
         if (json['jobs'] != null && json['jobs']['customers'] != null) {
           transformedJson['customer_name'] = json['jobs']['customers']['full_name'];
@@ -127,14 +134,14 @@ class IssueReportService {
     try {
       final response = await _supabase
           .from('issue_reports')
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .eq('job_id', jobId)
           .order('reported_at', ascending: false);
 
       return response.map((json) {
         final transformedJson = Map<String, dynamic>.from(json);
-        if (json['workers'] != null) {
-          transformedJson['worker_name'] = json['workers']['full_name'];
+        if (json['workers!issue_reports_worker_id_fkey'] != null) {
+          transformedJson['worker_name'] = json['workers!issue_reports_worker_id_fkey']['full_name'];
         }
         if (json['jobs'] != null && json['jobs']['customers'] != null) {
           transformedJson['customer_name'] = json['jobs']['customers']['full_name'];
@@ -151,14 +158,14 @@ class IssueReportService {
     try {
       final response = await _supabase
           .from('issue_reports')
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .eq('status', status)
           .order('reported_at', ascending: false);
 
       return response.map((json) {
         final transformedJson = Map<String, dynamic>.from(json);
-        if (json['workers'] != null) {
-          transformedJson['worker_name'] = json['workers']['full_name'];
+        if (json['workers!issue_reports_worker_id_fkey'] != null) {
+          transformedJson['worker_name'] = json['workers!issue_reports_worker_id_fkey']['full_name'];
         }
         if (json['jobs'] != null && json['jobs']['customers'] != null) {
           transformedJson['customer_name'] = json['jobs']['customers']['full_name'];
@@ -197,12 +204,12 @@ class IssueReportService {
           .from('issue_reports')
           .update(updates)
           .eq('id', issueId)
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .single();
 
       final transformedJson = Map<String, dynamic>.from(response);
-      if (response['workers'] != null) {
-        transformedJson['worker_name'] = response['workers']['full_name'];
+      if (response['workers!issue_reports_worker_id_fkey'] != null) {
+        transformedJson['worker_name'] = response['workers!issue_reports_worker_id_fkey']['full_name'];
       }
       if (response['jobs'] != null && response['jobs']['customers'] != null) {
         transformedJson['customer_name'] = response['jobs']['customers']['full_name'];
@@ -234,12 +241,12 @@ class IssueReportService {
           .from('issue_reports')
           .update(updates)
           .eq('id', issueId)
-          .select('*, workers (full_name), jobs (customers (full_name))')
+          .select('*, workers!issue_reports_worker_id_fkey (full_name), jobs (customers (full_name))')
           .single();
 
       final transformedJson = Map<String, dynamic>.from(response);
-      if (response['workers'] != null) {
-        transformedJson['worker_name'] = response['workers']['full_name'];
+      if (response['workers!issue_reports_worker_id_fkey'] != null) {
+        transformedJson['worker_name'] = response['workers!issue_reports_worker_id_fkey']['full_name'];
       }
       if (response['jobs'] != null && response['jobs']['customers'] != null) {
         transformedJson['customer_name'] = response['jobs']['customers']['full_name'];

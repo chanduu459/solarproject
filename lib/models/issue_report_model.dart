@@ -7,8 +7,9 @@ class IssueReportModel {
   final String priority;
   final String status;
   final DateTime reportedAt;
+  final String? reportedBy;
   final DateTime? resolvedAt;
-  final String? resolvedBy;
+  final String? resolvedByWorker;
   final String? resolutionNotes;
   final List<String>? imageUrls;
   final double? latitude;
@@ -27,8 +28,9 @@ class IssueReportModel {
     this.priority = 'medium',
     this.status = 'open',
     required this.reportedAt,
+    this.reportedBy,
     this.resolvedAt,
-    this.resolvedBy,
+    this.resolvedByWorker,
     this.resolutionNotes,
     this.imageUrls,
     this.latitude,
@@ -47,10 +49,11 @@ class IssueReportModel {
       priority: json['priority'] as String? ?? 'medium',
       status: json['status'] as String? ?? 'open',
       reportedAt: DateTime.parse(json['reported_at'] as String),
+      reportedBy: json['reported_by'] as String?,
       resolvedAt: json['resolved_at'] != null
           ? DateTime.parse(json['resolved_at'] as String)
           : null,
-      resolvedBy: json['resolved_by'] as String?,
+      resolvedByWorker: json['resolved_by'] as String?,
       resolutionNotes: json['resolution_notes'] as String?,
       imageUrls: json['image_urls'] != null
           ? List<String>.from(json['image_urls'] as List)
@@ -76,8 +79,9 @@ class IssueReportModel {
       'priority': priority,
       'status': status,
       'reported_at': reportedAt.toIso8601String(),
+      'reported_by': reportedBy,
       'resolved_at': resolvedAt?.toIso8601String(),
-      'resolved_by': resolvedBy,
+      'resolved_by': resolvedByWorker,
       'resolution_notes': resolutionNotes,
       'image_urls': imageUrls,
       'latitude': latitude,
@@ -126,8 +130,9 @@ class IssueReportModel {
     String? priority,
     String? status,
     DateTime? reportedAt,
+    String? reportedBy,
     DateTime? resolvedAt,
-    String? resolvedBy,
+    String? resolvedByWorker,
     String? resolutionNotes,
     List<String>? imageUrls,
     double? latitude,
@@ -144,8 +149,9 @@ class IssueReportModel {
       priority: priority ?? this.priority,
       status: status ?? this.status,
       reportedAt: reportedAt ?? this.reportedAt,
+      reportedBy: reportedBy ?? this.reportedBy,
       resolvedAt: resolvedAt ?? this.resolvedAt,
-      resolvedBy: resolvedBy ?? this.resolvedBy,
+      resolvedByWorker: resolvedByWorker ?? this.resolvedByWorker,
       resolutionNotes: resolutionNotes ?? this.resolutionNotes,
       imageUrls: imageUrls ?? this.imageUrls,
       latitude: latitude ?? this.latitude,

@@ -104,6 +104,7 @@ class IssuesNotifier extends StateNotifier<IssuesState> {
     required String issueType,
     required String description,
     String priority = 'medium',
+    String? reportedBy,
     List<String>? imageUrls,
     double? latitude,
     double? longitude,
@@ -117,6 +118,7 @@ class IssuesNotifier extends StateNotifier<IssuesState> {
         issueType: issueType,
         description: description,
         priority: priority,
+        reportedBy: reportedBy,
         imageUrls: imageUrls,
         latitude: latitude,
         longitude: longitude,
@@ -131,6 +133,7 @@ class IssuesNotifier extends StateNotifier<IssuesState> {
         isLoading: false,
         error: 'Failed to create issue report: $e',
       );
+      rethrow;
     }
   }
 

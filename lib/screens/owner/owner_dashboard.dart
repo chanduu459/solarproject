@@ -2,13 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../providers/providers.dart';
-import '../../services/services.dart';
 import '../login_screen.dart';
-import 'tabs/dashboard_tab.dart';
-import 'tabs/workers_tab.dart';
-import 'tabs/customers_tab.dart';
-import 'tabs/jobs_tab.dart';
-import 'tabs/issues_tab.dart';
+import 'tabs/tabs_exports.dart';
+import 'providers/providers_exports.dart';
 
 class OwnerDashboard extends ConsumerStatefulWidget {
   const OwnerDashboard({super.key});
@@ -19,56 +15,18 @@ class OwnerDashboard extends ConsumerStatefulWidget {
 
 class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
   int _currentIndex = 0;
-  Map<String, dynamic> _statistics = {};
-  bool _isLoadingStats = true;
 
   @override
   void initState() {
     super.initState();
-    // CRITICAL FIX: Wait for the first frame to draw before loading data
-    // This prevents the Riverpod "setState during build" crash.
+    // Load dashboard data after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      _loadDashboardData();
     });
   }
 
-  Future<void> _loadData() async {
-    await _loadStatistics();
-
-    // Only fetch if the widget is still on screen
-    if (!mounted) return;
-
-    await ref.read(jobsProvider.notifier).loadAllJobs();
-    await ref.read(attendanceProvider.notifier).loadAllAttendance();
-    await ref.read(issuesProvider.notifier).loadAllIssues();
-  }
-
-  Future<void> _loadStatistics() async {
-    try {
-      final jobService = JobService();
-      final attendanceService = AttendanceService();
-      final issueService = IssueReportService();
-
-      final jobStats = await jobService.getJobStatistics();
-      final attendanceStats = await attendanceService.getAttendanceStatistics();
-      final issueStats = await issueService.getIssueStatistics();
-
-      if (mounted) {
-        setState(() {
-          _statistics = {
-            ...jobStats,
-            ...attendanceStats,
-            ...issueStats,
-          };
-          _isLoadingStats = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading statistics: $e');
-      if (mounted) {
-        setState(() => _isLoadingStats = false);
-      }
-    }
+  Future<void> _loadDashboardData() async {
+    await ref.read(dashboardProvider.notifier).loadDashboardData();
   }
 
   Future<void> _signOut() async {
@@ -82,8 +40,14 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final dashboardState = ref.watch(dashboardProvider);
+
     final screens = [
-      DashboardTab(statistics: _statistics, isLoading: _isLoadingStats),
+      DashboardTab(
+        statistics: dashboardState.statistics,
+        isLoading: dashboardState.isLoading,
+        onTabChange: (index) => setState(() => _currentIndex = index),
+      ),
       const WorkersTab(),
       const CustomersTab(),
       const JobsTab(),
@@ -126,8 +90,8 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
             label: 'Workers',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_pin_circle),
-            label: 'Customers',
+            icon: Icon(Icons.shopping_cart),
+            label: 'Orders',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.work),

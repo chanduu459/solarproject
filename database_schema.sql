@@ -52,7 +52,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     completed_at TIMESTAMPTZ,
     notes TEXT,
     estimated_cost DECIMAL(10, 2),
-    priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent'))
+    priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    location TEXT
 );
 
 -- Attendance table
@@ -324,18 +327,34 @@ CREATE POLICY "Owners can manage all daily reports"
 -- Function to update job progress when work update is created
 CREATE OR REPLACE FUNCTION update_job_progress()
 RETURNS TRIGGER AS $$
+DECLARE
+    current_progress INTEGER;
+    current_started_at TIMESTAMPTZ;
 BEGIN
-    UPDATE jobs 
+    -- Get current job data
+    SELECT progress_percentage, started_at INTO current_progress, current_started_at
+    FROM jobs WHERE id = NEW.job_id;
+
+    UPDATE jobs
     SET progress_percentage = NEW.progress_percentage,
         status = CASE 
             WHEN NEW.progress_percentage = 100 THEN 'completed'
             WHEN NEW.progress_percentage > 0 THEN 'in_progress'
             ELSE status
         END,
-        completed_at = CASE 
+        -- Set started_at only on first update (when progress goes from 0 to > 0)
+        started_at = CASE
+            WHEN current_started_at IS NULL AND NEW.progress_percentage > 0 THEN NOW()
+            ELSE started_at
+        END,
+        -- Set completed_at when reaching 100%
+        completed_at = CASE
             WHEN NEW.progress_percentage = 100 THEN NOW()
             ELSE completed_at
-        END
+        END,
+        -- Update location data if provided
+        latitude = COALESCE(NEW.latitude, latitude),
+        longitude = COALESCE(NEW.longitude, longitude)
     WHERE id = NEW.job_id;
     RETURN NEW;
 END;

@@ -18,7 +18,7 @@ class JobModel {
   final String? priority;
 
   // NEW: Fields for Location Tracking
-  final String? address;
+  final String? location;
   final double? latitude;
   final double? longitude;
 
@@ -41,7 +41,7 @@ class JobModel {
     this.notes,
     this.estimatedCost,
     this.priority = 'normal',
-    this.address,
+    this.location,
     this.latitude,
     this.longitude,
     this.customer,
@@ -72,9 +72,9 @@ class JobModel {
       priority: json['priority'] as String? ?? 'normal',
 
       // NEW: Correct Mapping for Location Tracking
+      location: json['location'] as String?,
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
       longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
-      address: json['address'] as String?,
 
       customer: json['customers'] != null
           ? CustomerModel.fromJson(json['customers'] as Map<String, dynamic>)
@@ -99,6 +99,7 @@ class JobModel {
       'notes': notes,
       'estimated_cost': estimatedCost,
       'priority': priority,
+      'location': location,
       'latitude': latitude,
       'longitude': longitude,
     };
@@ -145,7 +146,7 @@ class JobModel {
     String? notes,
     double? estimatedCost,
     String? priority,
-    String? address,
+    String? location,
     double? latitude,
     double? longitude,
     CustomerModel? customer,
@@ -166,7 +167,7 @@ class JobModel {
       notes: notes ?? this.notes,
       estimatedCost: estimatedCost ?? this.estimatedCost,
       priority: priority ?? this.priority,
-      address: address ?? this.address,
+      location: location ?? this.location,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       customer: customer ?? this.customer,

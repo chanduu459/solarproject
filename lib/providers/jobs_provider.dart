@@ -124,6 +124,7 @@ class JobsNotifier extends StateNotifier<JobsState> {
     List<String>? imageUrls,
     double? latitude,
     double? longitude,
+    String? location,
   }) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
@@ -137,6 +138,7 @@ class JobsNotifier extends StateNotifier<JobsState> {
         imageUrls: imageUrls,
         latitude: latitude,
         longitude: longitude,
+        location: location,
       );
 
       // 2. Fetch updated job (Since DB trigger updated the jobs table)

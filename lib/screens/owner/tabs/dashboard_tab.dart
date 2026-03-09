@@ -7,11 +7,13 @@ import '../dialogs/add_worker_dialog.dart';
 class DashboardTab extends StatelessWidget {
   final Map<String, dynamic> statistics;
   final bool isLoading;
+  final Function(int)? onTabChange;
 
   const DashboardTab({
     super.key,
     required this.statistics,
     required this.isLoading,
+    this.onTabChange,
   });
 
   @override
@@ -160,7 +162,10 @@ class DashboardTab extends StatelessWidget {
             label: 'Create Job',
             color: const Color(0xFF43A047),
             onTap: () {
-              // TODO: Navigate to create job
+              // Navigate to Jobs tab (index 3)
+              if (onTabChange != null) {
+                onTabChange!(3);
+              }
             },
           ),
         ),

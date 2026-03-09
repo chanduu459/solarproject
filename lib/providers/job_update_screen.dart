@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/providers.dart';
+import '../../utils/constants.dart';
+import '../../widgets/report_issue_dialog.dart';
 
 class JobUpdateScreen extends ConsumerStatefulWidget {
   final String jobId;
@@ -99,10 +101,13 @@ class _JobUpdateScreenState extends ConsumerState<JobUpdateScreen> {
       final double? lat = double.tryParse(_latitudeController.text.trim());
       final double? lng = double.tryParse(_longitudeController.text.trim());
 
-      // 2. Format Address and Notes
-      final String combinedNotes = _addressController.text.isNotEmpty
-          ? "Address: ${_addressController.text}\nNotes: ${_notesController.text}"
-          : _notesController.text;
+      // 2. Get Address/Location and Notes separately
+      final String? location = _addressController.text.isNotEmpty
+          ? _addressController.text.trim()
+          : null;
+      final String? notes = _notesController.text.isNotEmpty
+          ? _notesController.text.trim()
+          : null;
 
       // 3. Handle Image Uploads
       final supabase = Supabase.instance.client;
@@ -116,7 +121,7 @@ class _JobUpdateScreenState extends ConsumerState<JobUpdateScreen> {
         final fileBytes = await xFile.readAsBytes();
 
         await supabase.storage
-            .from('installation_images')
+            .from(AppConstants.installationImagesBucket)
             .uploadBinary(
           filePath,
           fileBytes,
@@ -124,7 +129,7 @@ class _JobUpdateScreenState extends ConsumerState<JobUpdateScreen> {
         );
 
         final publicUrl = supabase.storage
-            .from('installation_images')
+            .from(AppConstants.installationImagesBucket)
             .getPublicUrl(filePath);
 
         uploadedImageUrls.add(publicUrl);
@@ -132,15 +137,16 @@ class _JobUpdateScreenState extends ConsumerState<JobUpdateScreen> {
 
       setState(() => _loadingText = 'Saving to Database...');
 
-      // 4. Submit to Provider (Ensure latitude and longitude are passed)
+      // 4. Submit to Provider with location as separate field
       await ref.read(jobsProvider.notifier).submitWorkUpdate(
         jobId: widget.jobId,
         workerId: workerId,
         progressPercentage: _progressPercentage.toInt(),
-        notes: combinedNotes,
+        notes: notes,
         imageUrls: uploadedImageUrls,
         latitude: lat,
         longitude: lng,
+        location: location,
       );
 
       if (mounted) {
@@ -171,6 +177,18 @@ class _JobUpdateScreenState extends ConsumerState<JobUpdateScreen> {
         backgroundColor: Colors.white,
         iconTheme: IconThemeData(color: Colors.black87),
         elevation: 0,
+        actions: [
+          // Report Issue button
+          IconButton(
+            icon: const Icon(Icons.report_problem, color: Color(0xFFE53935)),
+            tooltip: 'Report Issue',
+            onPressed: () => ReportIssueDialog.show(
+              context,
+              jobId: widget.jobId,
+              customerName: widget.jobTitle,
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24.w),

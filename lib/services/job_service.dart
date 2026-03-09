@@ -117,6 +117,7 @@ class JobService {
     List<String>? imageUrls,
     double? latitude,
     double? longitude,
+    String? location,
   }) async {
     try {
       final Map<String, dynamic> updateData = {
@@ -147,6 +148,11 @@ class JobService {
         }
         await _supabase.from('work_updates').insert(updateData);
       }
+
+      // Update job location directly if provided
+      if (location != null && location.isNotEmpty) {
+        await _supabase.from('jobs').update({'location': location}).eq('id', jobId);
+      }
     } catch (e) {
       throw Exception('Failed to submit work update: $e');
     }
@@ -169,13 +175,14 @@ class JobService {
 
   // 7. Get Job by ID
   Future<JobModel?> getJobById(String jobId) async {
-    final response = await _supabase.from('jobs').select('*, customers (*), workers!jobs_worker_id_fkey (full_name)').eq('id', jobId).single();
-    if (response != null) {
+    try {
+      final response = await _supabase.from('jobs').select('*, customers (*), workers!jobs_worker_id_fkey (full_name)').eq('id', jobId).single();
       final jobJson = Map<String, dynamic>.from(response);
       if (response['workers'] != null) jobJson['worker_name'] = response['workers']['full_name'];
       return JobModel.fromJson(jobJson);
+    } catch (e) {
+      return null;
     }
-    return null;
   }
 
   // 8. Assign a worker to a job

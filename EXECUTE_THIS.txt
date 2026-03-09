@@ -1,0 +1,76 @@
+# FINAL FIX - Execute These Steps
+
+## ✅ What Was Fixed in Code
+
+1. **Fixed bucket name in image upload** (`lib/providers/job_update_screen.dart`)
+   - Changed from hardcoded `'installation_images'` to `AppConstants.installationImagesBucket` ('solarbucket')
+   - Added missing import for constants
+
+2. **Updated database schema file** (`database_schema.sql`)
+   - Added latitude and longitude fields to jobs table definition
+   - Updated trigger to sync location data from work_updates to jobs
+
+3. **Refactored owner dashboard**
+   - Created dashboard provider for state management
+   - Added barrel files for clean imports
+
+---
+
+## ⚠️ ACTION REQUIRED - Run This SQL in Supabase
+
+**You MUST run this migration in your Supabase SQL Editor:**
+
+Open `migration_fix_jobs_location.sql` and run it in Supabase Dashboard → SQL Editor
+
+The migration will:
+1. Add latitude/longitude columns to jobs table (if missing)
+2. Update the trigger to sync location data properly
+
+**Location**: `C:\solarproject\migration_fix_jobs_location.sql`
+
+---
+
+## 🧪 Test the Fix
+
+After running the SQL migration:
+
+1. Rebuild the app:
+   ```
+   flutter clean
+   flutter pub get
+   flutter run
+   ```
+
+2. Test image upload:
+   - Open worker app
+   - Go to "Update: ravali" (or any job)
+   - Fill in latitude and longitude
+   - Add photos
+   - Click submit
+   - Should work without errors ✅
+
+---
+
+## ✅ Expected Result
+
+After completing these steps:
+- ✅ Images upload to 'solarbucket' successfully
+- ✅ Latitude/longitude save to both work_updates AND jobs tables
+- ✅ No more "column latitude does not exist" error
+- ✅ All data displays correctly in owner dashboard
+
+---
+
+## 📋 Files Modified
+
+1. `lib/providers/job_update_screen.dart` - Fixed bucket name
+2. `lib/screens/owner/owner_dashboard.dart` - Refactored
+3. `database_schema.sql` - Updated schema
+4. `migration_fix_jobs_location.sql` - NEW: Run this in Supabase!
+
+---
+
+## Status: READY TO TEST
+
+Run the migration SQL, then rebuild and test the app!
+

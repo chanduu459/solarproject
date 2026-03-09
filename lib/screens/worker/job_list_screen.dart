@@ -5,6 +5,7 @@ import '../../providers/providers.dart';
 import '../../models/models.dart';
 // Note: We don't need job_detail_screen.dart anymore if we are using JobUpdateScreen
 import '../../providers/job_update_screen.dart';
+import '../../widgets/report_issue_dialog.dart';
 
 class JobListScreen extends ConsumerStatefulWidget {
   const JobListScreen({super.key});
@@ -72,9 +73,15 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
               padding: EdgeInsets.all(16.w),
               itemCount: filteredJobs.length,
               itemBuilder: (context, index) {
+                final job = filteredJobs[index];
                 return _JobListItem(
-                  job: filteredJobs[index],
-                  onTap: () => _navigateToJobUpdate(filteredJobs[index]),
+                  job: job,
+                  onTap: () => _navigateToJobUpdate(job),
+                  onReportIssue: () => ReportIssueDialog.show(
+                    context,
+                    jobId: job.id,
+                    customerName: job.customer?.fullName ?? 'Unknown Customer',
+                  ),
                 );
               },
             ),
@@ -140,7 +147,7 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
           jobId: job.id,
           jobTitle: job.customer?.fullName ?? 'Customer',
           initialProgress: job.progressPercentage,
-          currentAddress: job.address, // This will work once Step 1 & 2 are done
+          currentAddress: job.location, // This will work once Step 1 & 2 are done
           currentLat: job.latitude,    // This will work once Step 1 & 2 are done
           currentLng: job.longitude,   // This will work once Step 1 & 2 are done
         ),
@@ -152,10 +159,12 @@ class _JobListScreenState extends ConsumerState<JobListScreen> {
 class _JobListItem extends StatelessWidget {
   final JobModel job;
   final VoidCallback onTap;
+  final VoidCallback onReportIssue;
 
   const _JobListItem({
     required this.job,
     required this.onTap,
+    required this.onReportIssue,
   });
 
   @override
@@ -195,20 +204,38 @@ class _JobListItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: job.statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                      job.statusDisplay,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: job.statusColor,
-                        fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Report Issue button
+                      IconButton(
+                        icon: Icon(
+                          Icons.report_problem_outlined,
+                          color: const Color(0xFFE53935),
+                          size: 22.w,
+                        ),
+                        tooltip: 'Report Issue',
+                        onPressed: onReportIssue,
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
                       ),
-                    ),
+                      SizedBox(width: 4.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: job.statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          job.statusDisplay,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: job.statusColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

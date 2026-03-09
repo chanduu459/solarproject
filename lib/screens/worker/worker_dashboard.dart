@@ -7,6 +7,7 @@ import '../login_screen.dart';
 import 'job_list_screen.dart';
 import 'attendance_screen.dart';
 import 'profile_screen.dart';
+import 'issues_screen.dart';
 import '../../providers/job_update_screen.dart';
 
 class WorkerDashboard extends ConsumerStatefulWidget {
@@ -45,17 +46,13 @@ class _WorkerDashboardState extends ConsumerState<WorkerDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).user;
-    final jobsState = ref.watch(jobsProvider);
-    final attendanceState = ref.watch(attendanceProvider);
-
     final screens = [
       const _HomeTab(),
       const JobListScreen(),
       const AttendanceScreen(),
+      const WorkerIssuesScreen(),
       const ProfileScreen(),
     ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -94,6 +91,10 @@ class _WorkerDashboardState extends ConsumerState<WorkerDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.access_time),
             label: 'Attendance',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_problem),
+            label: 'Issues',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -155,7 +156,7 @@ class _HomeTab extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Today\'s Jobs',
+                  'Jobs',
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -378,7 +379,7 @@ class _JobCard extends StatelessWidget {
                 jobId: job.id,
                 jobTitle: job.customer?.fullName ?? 'customer',
                 initialProgress: job.progressPercentage,
-                currentAddress: job.address, // Must exist in JobModel
+                currentAddress: job.location, // Must exist in JobModel
                 currentLat: job.latitude,
                 currentLng: job.longitude,
               ),
