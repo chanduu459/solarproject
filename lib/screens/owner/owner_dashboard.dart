@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+// Adjust these paths based on your actual folder structure
 import '../../providers/providers.dart';
 import '../login_screen.dart';
 import 'tabs/tabs_exports.dart';
 import 'providers/providers_exports.dart';
+
+// Explicitly importing the newly redesigned CustomersTab
+import './tabs/customers_tab.dart';
 
 class OwnerDashboard extends ConsumerStatefulWidget {
   const OwnerDashboard({super.key});
@@ -47,63 +51,57 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
         statistics: dashboardState.statistics,
         isLoading: dashboardState.isLoading,
         onTabChange: (index) => setState(() => _currentIndex = index),
+        onLogout: _signOut,
       ),
       const WorkersTab(),
-      const CustomersTab(),
+      const CustomersTab(), // Your newly redesigned Enterprise Tab!
       const JobsTab(),
       const IssuesTab(),
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Owner Dashboard',
-          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // TODO: Show notifications
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
-          ),
-        ],
-      ),
+      // Match the soft off-white background from the CustomersTab
+      backgroundColor: const Color(0xFFF8F9FA),
+
       body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF1E88E5),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        backgroundColor: Colors.white,
+        elevation: 20, // Slightly higher elevation for a floating SaaS feel
+        shadowColor: Colors.black.withValues(alpha: 0.1),
+        // Solar Amber indicator for the selected tab
+        indicatorColor: const Color(0xFFFFB300).withValues(alpha: 0.2),
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined, color: Colors.black54),
+              // Deep Navy for selected icons
+              selectedIcon: Icon(Icons.dashboard, color: Color(0xFF1A237E)),
+              label: 'Overview'
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Workers',
+          NavigationDestination(
+              icon: Icon(Icons.people_outline, color: Colors.black54),
+              selectedIcon: Icon(Icons.people, color: Color(0xFF1A237E)),
+              label: 'Workers'
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Orders',
+          NavigationDestination(
+              icon: Icon(Icons.shopping_cart_outlined, color: Colors.black54),
+              selectedIcon: Icon(Icons.shopping_cart, color: Color(0xFF1A237E)),
+              label: 'Orders'
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work),
-            label: 'Jobs',
+          NavigationDestination(
+              icon: Icon(Icons.work_outline, color: Colors.black54),
+              selectedIcon: Icon(Icons.work, color: Color(0xFF1A237E)),
+              label: 'Jobs'
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.report_problem),
-            label: 'Issues',
+          NavigationDestination(
+              icon: Icon(Icons.report_problem_outlined, color: Colors.black54),
+              // Keeping issues red to signify alerts/attention needed
+              selectedIcon: Icon(Icons.report_problem, color: Color(0xFFD84315)),
+              label: 'Issues'
           ),
         ],
       ),
     );
   }
 }
-

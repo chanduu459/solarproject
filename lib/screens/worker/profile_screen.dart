@@ -21,169 +21,199 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(height: 32.h),
-            // Profile avatar
-            Container(
-              width: 120.w,
-              height: 120.w,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E88E5).withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF1E88E5),
-                  width: 3,
-                ),
-              ),
-              child: user?.avatarUrl != null
-                  ? ClipOval(
-                      child: Image.network(
-                        user!.avatarUrl!,
-                        fit: BoxFit.cover,
+      backgroundColor: const Color(0xFFF8F9FA), // Professional off-white
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 32.h),
+
+              // --- Profile Header ---
+              _buildProfileHeader(user),
+
+              SizedBox(height: 32.h),
+
+              // --- Contact Information ---
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('CONTACT INFORMATION'),
+                    SizedBox(height: 12.h),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                    )
-                  : Icon(
-                      Icons.person,
-                      size: 60.w,
-                      color: const Color(0xFF1E88E5),
+                      child: Column(
+                        children: [
+                          _buildInfoItem(Icons.email_outlined, 'Email Address', user?.email ?? 'Not set'),
+                          const Divider(height: 1),
+                          _buildInfoItem(Icons.phone_outlined, 'Phone Number', user?.phone ?? 'Not set'),
+                        ],
+                      ),
                     ),
-            ),
-            SizedBox(height: 16.h),
-            // Name
-            Text(
-              user?.fullName ?? 'Unknown',
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 4.h),
-            // Role
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E88E5).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                (user?.role ?? 'worker').toUpperCase(),
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1E88E5),
+
+                    SizedBox(height: 32.h),
+
+                    // --- Account Settings ---
+                    _buildSectionTitle('ACCOUNT SETTINGS'),
+                    SizedBox(height: 12.h),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildActionItem(
+                            icon: Icons.person_outline_rounded,
+                            title: 'Edit Profile',
+                            onTap: () { /* TODO: Navigate */ },
+                          ),
+                          const Divider(height: 1),
+                          _buildActionItem(
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Change Password',
+                            onTap: () { /* TODO: Navigate */ },
+                          ),
+                          const Divider(height: 1),
+                          _buildActionItem(
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Notifications',
+                            onTap: () { /* TODO: Navigate */ },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 32.h),
+
+                    // --- App Settings ---
+                    _buildSectionTitle('SYSTEM'),
+                    SizedBox(height: 12.h),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildActionItem(
+                            icon: Icons.help_outline_rounded,
+                            title: 'Help & Support',
+                            onTap: () { /* TODO: Navigate */ },
+                          ),
+                          const Divider(height: 1),
+                          _buildActionItem(
+                            icon: Icons.shield_outlined,
+                            title: 'Privacy Policy',
+                            onTap: () { /* TODO: Navigate */ },
+                          ),
+                          const Divider(height: 1),
+                          _buildActionItem(
+                            icon: Icons.info_outline_rounded,
+                            title: 'About App',
+                            onTap: () => _showAboutDialog(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 40.h),
+
+                    // --- Sign Out Button ---
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54.h,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _signOut(context, ref),
+                        icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                        label: Text('Sign Out', style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD32F2F), // Destructive Red
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 40.h),
+                  ],
                 ),
               ),
-            ),
-            SizedBox(height: 32.h),
-            // Contact information
-            _buildSectionTitle('Contact Information'),
-            SizedBox(height: 12.h),
-            _buildInfoCard([
-              _buildInfoItem(Icons.email, 'Email', user?.email ?? 'Not set'),
-              _buildInfoItem(Icons.phone, 'Phone', user?.phone ?? 'Not set'),
-            ]),
-            SizedBox(height: 24.h),
-            // Account settings
-            _buildSectionTitle('Account Settings'),
-            SizedBox(height: 12.h),
-            _buildSettingsCard([
-              _buildSettingsItem(
-                icon: Icons.edit,
-                title: 'Edit Profile',
-                onTap: () {
-                  // TODO: Navigate to edit profile
-                },
-              ),
-              _buildSettingsItem(
-                icon: Icons.lock,
-                title: 'Change Password',
-                onTap: () {
-                  // TODO: Navigate to change password
-                },
-              ),
-              _buildSettingsItem(
-                icon: Icons.notifications,
-                title: 'Notifications',
-                onTap: () {
-                  // TODO: Navigate to notifications settings
-                },
-              ),
-            ]),
-            SizedBox(height: 24.h),
-            // App settings
-            _buildSectionTitle('App Settings'),
-            SizedBox(height: 12.h),
-            _buildSettingsCard([
-              _buildSettingsItem(
-                icon: Icons.help,
-                title: 'Help & Support',
-                onTap: () {
-                  // TODO: Navigate to help
-                },
-              ),
-              _buildSettingsItem(
-                icon: Icons.privacy_tip,
-                title: 'Privacy Policy',
-                onTap: () {
-                  // TODO: Navigate to privacy policy
-                },
-              ),
-              _buildSettingsItem(
-                icon: Icons.info,
-                title: 'About',
-                onTap: () {
-                  _showAboutDialog(context);
-                },
-              ),
-            ]),
-            SizedBox(height: 32.h),
-            // Sign out button
-            SizedBox(
-              width: double.infinity,
-              height: 56.h,
-              child: ElevatedButton.icon(
-                onPressed: () => _signOut(context, ref),
-                icon: const Icon(Icons.logout),
-                label: const Text('Sign Out'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 32.h),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // --- UI Component Builders ---
+
+  Widget _buildProfileHeader(dynamic user) {
+    return Column(
+      children: [
+        Container(
+          width: 110.w,
+          height: 110.w,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+            border: Border.all(color: Colors.white, width: 4.w),
+          ),
+          child: user?.avatarUrl != null
+              ? ClipOval(child: Image.network(user!.avatarUrl!, fit: BoxFit.cover))
+              : Container(
+            decoration: BoxDecoration(color: const Color(0xFFF1F3F4), shape: BoxShape.circle),
+            child: Icon(Icons.person_rounded, size: 50.w, color: const Color(0xFF1A237E)),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Text(
+          user?.fullName ?? 'Unknown Worker',
+          style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A), letterSpacing: -0.5),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A237E).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Text(
+            (user?.role ?? 'Field Worker').toUpperCase(),
+            style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A237E), letterSpacing: 1.0),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
+    return Padding(
+      padding: EdgeInsets.only(left: 4.w),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 18.sp,
+          fontSize: 12.sp,
           fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(List<Widget> children) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: children,
+          color: Colors.grey.shade500,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -191,70 +221,47 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildInfoItem(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       child: Row(
         children: [
-          Icon(icon, size: 20.w, color: Colors.grey),
-          SizedBox(width: 12.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(10.r)),
+            child: Icon(icon, size: 20.w, color: Colors.grey.shade600),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                SizedBox(height: 4.h),
+                Text(value, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsCard(List<Widget> children) {
-    return Card(
-      child: Column(
-        children: children,
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionItem({required IconData icon, required String title, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         child: Row(
           children: [
-            Icon(icon, size: 24.w, color: const Color(0xFF1E88E5)),
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(10.r)),
+              child: Icon(icon, size: 20.w, color: const Color(0xFF1A237E)), // Deep Navy
+            ),
             SizedBox(width: 16.w),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              child: Text(title, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 24.w,
-              color: Colors.grey,
-            ),
+            Icon(Icons.chevron_right_rounded, size: 24.w, color: Colors.grey.shade400),
           ],
         ),
       ),
@@ -265,44 +272,46 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('About'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        contentPadding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 24.h),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.solar_power,
-              size: 64.w,
-              color: const Color(0xFF1E88E5),
+            Container(
+              padding: EdgeInsets.all(20.w),
+              decoration: BoxDecoration(color: const Color(0xFF1A237E).withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(Icons.solar_power_rounded, size: 56.w, color: const Color(0xFF1A237E)),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              'Solar Installation Tracker',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            SizedBox(height: 24.h),
+            Text('SolarPulse Pro', style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
             SizedBox(height: 8.h),
-            Text(
-              'Version 1.0.0',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey,
-              ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12.r)),
+              child: Text('Version 2.1.0', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 16.h),
-            const Text(
-              'A comprehensive solution for tracking solar panel installations, worker attendance, and job progress.',
+            SizedBox(height: 24.h),
+            Text(
+              'Enterprise tracking solution for field operations, installation management, and workforce deployment.',
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600, height: 1.5),
+            ),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: double.infinity,
+              height: 48.h,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A237E),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                ),
+                child: Text('Close', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }

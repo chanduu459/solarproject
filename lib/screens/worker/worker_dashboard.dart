@@ -47,57 +47,48 @@ class _WorkerDashboardState extends ConsumerState<WorkerDashboard> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const _HomeTab(),
+      _HomeTab(onLogout: _signOut), // Passing logout to the custom header
       const JobListScreen(),
       const AttendanceScreen(),
       const WorkerIssuesScreen(),
       const ProfileScreen(),
     ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Worker Dashboard',
-          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // TODO: Show notifications
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF8F9FA), // Professional off-white background
+      // Removed global AppBar to match Owner Dashboard architecture
       body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF1E88E5),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        backgroundColor: Colors.white,
+        elevation: 20,
+        shadowColor: Colors.black.withOpacity(0.1),
+        indicatorColor: const Color(0xFFFFB300).withOpacity(0.2), // Solar Amber
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined, color: Colors.black54),
+            selectedIcon: Icon(Icons.home, color: Color(0xFF1A237E)),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work),
+          NavigationDestination(
+            icon: Icon(Icons.work_outline, color: Colors.black54),
+            selectedIcon: Icon(Icons.work, color: Color(0xFF1A237E)),
             label: 'Jobs',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.access_time),
-            label: 'Attendance',
+          NavigationDestination(
+            icon: Icon(Icons.access_time, color: Colors.black54),
+            selectedIcon: Icon(Icons.access_time_filled, color: Color(0xFF1A237E)),
+            label: 'Time',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.report_problem),
+          NavigationDestination(
+            icon: Icon(Icons.report_problem_outlined, color: Colors.black54),
+            selectedIcon: Icon(Icons.report_problem, color: Color(0xFFD32F2F)), // Keep issues red
             label: 'Issues',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline, color: Colors.black54),
+            selectedIcon: Icon(Icons.person, color: Color(0xFF1A237E)),
             label: 'Profile',
           ),
         ],
@@ -107,7 +98,9 @@ class _WorkerDashboardState extends ConsumerState<WorkerDashboard> {
 }
 
 class _HomeTab extends ConsumerWidget {
-  const _HomeTab();
+  final VoidCallback onLogout;
+
+  const _HomeTab({required this.onLogout});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,96 +112,125 @@ class _HomeTab extends ConsumerWidget {
     final isCheckedIn = attendanceState.isCheckedIn;
 
     return RefreshIndicator(
+      color: const Color(0xFF1A237E),
       onRefresh: () async {
         if (user != null) {
           await ref.read(jobsProvider.notifier).loadTodayJobs(user.id);
           await ref.read(attendanceProvider.notifier).loadActiveAttendance(user.id);
         }
       },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome message
-            Text(
-              'Hello, ${user?.fullName ?? 'Worker'}!',
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              'Here\'s your work overview for today',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey,
-              ),
-            ),
-            SizedBox(height: 24.h),
-            // Status card
-            _buildStatusCard(context, isCheckedIn, todayJobs.length),
-            SizedBox(height: 24.h),
-            // Today's jobs
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Jobs',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        slivers: [
+          // Custom Enterprise Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 20.h), // Top padding accounts for status bar
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Monday, March 9', // Future integration: make dynamic
+                        style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Hi, ${user?.fullName?.split(' ').first ?? 'Worker'}',
+                        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A), letterSpacing: -0.5),
+                      ),
+                    ],
                   ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Navigate to jobs tab
-                  },
-                  child: const Text('View All'),
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            if (todayJobs.isEmpty)
-              _buildEmptyJobsCard()
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: todayJobs.length > 3 ? 3 : todayJobs.length,
-                itemBuilder: (context, index) {
-                  return _JobCard(job: todayJobs[index]);
-                },
-              ),
-            SizedBox(height: 24.h),
-            // Quick actions
-            Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
+                        child: IconButton(
+                          icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1A1A1A)),
+                          onPressed: () { /* TODO */ },
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Container(
+                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
+                        child: IconButton(
+                          icon: const Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+                          onPressed: onLogout,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 12.h),
-            _buildQuickActions(context),
-          ],
-        ),
+          ),
+
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Status Hero Card
+                _buildStatusCard(context, isCheckedIn, todayJobs.length),
+                SizedBox(height: 32.h),
+
+                // Quick Actions
+                Text('Quick Actions', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                SizedBox(height: 16.h),
+                _buildQuickActions(context),
+                SizedBox(height: 32.h),
+
+                // Today's Jobs Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Today\'s Schedule', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                    TextButton(
+                      onPressed: () { /* Navigate to jobs tab */ },
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF1E88E5)),
+                      child: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+
+                // Jobs List
+                if (todayJobs.isEmpty)
+                  _buildEmptyJobsCard()
+                else
+                  ...todayJobs.take(3).map((job) => _JobCard(job: job)),
+
+                SizedBox(height: 40.h), // Bottom safe space
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  // --- UI Components ---
+
   Widget _buildStatusCard(BuildContext context, bool isCheckedIn, int jobCount) {
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: isCheckedIn
-              ? [const Color(0xFF43A047), const Color(0xFF2E7D32)]
-              : [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
+              ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)] // Success Green Gradient
+              : [const Color(0xFF1A237E), const Color(0xFF0D47A1)], // Deep Navy Gradient
         ),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: (isCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFF1A237E)).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,13 +240,13 @@ class _HomeTab extends ConsumerWidget {
               Container(
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12.r),
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16.r),
                 ),
                 child: Icon(
-                  isCheckedIn ? Icons.check_circle : Icons.access_time,
+                  isCheckedIn ? Icons.verified_user_rounded : Icons.pending_actions_rounded,
                   color: Colors.white,
-                  size: 32.w,
+                  size: 28.w,
                 ),
               ),
               SizedBox(width: 16.w),
@@ -233,35 +255,34 @@ class _HomeTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isCheckedIn ? 'Currently Working' : 'Not Checked In',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      isCheckedIn ? 'Active Shift' : 'Off Duty',
+                      style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      isCheckedIn
-                          ? 'You are checked in and ready to work'
-                          : 'Check in to start your work day',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
+                      isCheckedIn ? 'You are checked in and tracking time.' : 'Check in to start your work day.',
+                      style: TextStyle(fontSize: 13.sp, color: Colors.white.withOpacity(0.8)),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 20.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem('Today\'s Jobs', jobCount.toString()),
-              _buildStatItem('Status', isCheckedIn ? 'Active' : 'Inactive'),
-            ],
+          SizedBox(height: 24.h),
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('Assigned Today', jobCount.toString().padLeft(2, '0')),
+                Container(width: 1, height: 40.h, color: Colors.white.withOpacity(0.2)),
+                _buildStatItem('Status', isCheckedIn ? 'Online' : 'Offline'),
+              ],
+            ),
           ),
         ],
       ),
@@ -271,48 +292,33 @@ class _HomeTab extends ConsumerWidget {
   Widget _buildStatItem(String label, String value) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        Text(value, style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: Colors.white)),
         SizedBox(height: 4.h),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: Colors.white.withOpacity(0.8),
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12.sp, color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w500)),
       ],
     );
   }
 
   Widget _buildEmptyJobsCard() {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 24.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12.r),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.work_off,
-            size: 48.w,
-            color: Colors.grey,
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(color: const Color(0xFFF1F3F4), shape: BoxShape.circle),
+            child: Icon(Icons.event_available_rounded, size: 40.w, color: const Color(0xFF1A237E)),
           ),
-          SizedBox(height: 12.h),
-          Text(
-            'No jobs scheduled for today',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey,
-            ),
-          ),
+          SizedBox(height: 16.h),
+          Text('Clear Schedule', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+          SizedBox(height: 8.h),
+          Text('You have no installations assigned for today.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600)),
         ],
       ),
     );
@@ -323,34 +329,28 @@ class _HomeTab extends ConsumerWidget {
       children: [
         Expanded(
           child: _QuickActionButton(
-            icon: Icons.camera_alt,
-            label: 'Upload Photo',
-            color: const Color(0xFF43A047),
-            onTap: () {
-              // TODO: Navigate to photo upload
-            },
+            icon: Icons.add_a_photo_rounded,
+            label: 'Site Photo',
+            color: const Color(0xFF1E88E5), // Blue
+            onTap: () { /* TODO */ },
           ),
         ),
         SizedBox(width: 12.w),
         Expanded(
           child: _QuickActionButton(
-            icon: Icons.report_problem,
+            icon: Icons.warning_amber_rounded,
             label: 'Report Issue',
-            color: const Color(0xFFE53935),
-            onTap: () {
-              // TODO: Navigate to issue report
-            },
+            color: const Color(0xFFD32F2F), // Red
+            onTap: () { /* TODO */ },
           ),
         ),
         SizedBox(width: 12.w),
         Expanded(
           child: _QuickActionButton(
-            icon: Icons.check_circle,
-            label: 'Complete Job',
-            color: const Color(0xFF1E88E5),
-            onTap: () {
-              // TODO: Navigate to job completion
-            },
+            icon: Icons.task_alt_rounded,
+            label: 'Finish Job',
+            color: const Color(0xFF2E7D32), // Green
+            onTap: () { /* TODO */ },
           ),
         ),
       ],
@@ -365,156 +365,155 @@ class _JobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: EdgeInsets.only(bottom: 12.h),
-      // 1. Wrap with InkWell to make it clickable
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.r),
-        onTap: () {
-          // 2. Navigate to the Update Screen
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => JobUpdateScreen(
-                jobId: job.id,
-                jobTitle: job.customer?.fullName ?? 'customer',
-                initialProgress: job.progressPercentage,
-                currentAddress: job.location, // Must exist in JobModel
-                currentLat: job.latitude,
-                currentLng: job.longitude,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: job.statusColor, width: 6.w)),
+          ),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => JobUpdateScreen(
+                    jobId: job.id,
+                    jobTitle: job.customer?.fullName ?? 'Customer',
+                    initialProgress: job.progressPercentage,
+                    currentAddress: job.location,
+                    currentLat: job.latitude,
+                    currentLng: job.longitude,
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          job.customer?.fullName ?? 'Unknown Customer',
+                          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A)),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                        decoration: BoxDecoration(color: job.statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
+                        child: Text(
+                          job.statusDisplay,
+                          style: TextStyle(fontSize: 11.sp, color: job.statusColor, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 16.w, color: Colors.grey.shade500),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          job.customer?.address ?? 'No address provided',
+                          style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Icon(Icons.solar_power_outlined, size: 16.w, color: Colors.grey.shade500),
+                      SizedBox(width: 8.w),
+                      Text('${job.panelQuantity}x ${job.panelType}', style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Modernized Progress Bar
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: LinearProgressIndicator(
+                            value: job.progressPercentage / 100,
+                            minHeight: 6.h,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              job.progressPercentage == 100 ? const Color(0xFF2E7D32) : const Color(0xFFFFB300), // Amber for in-progress
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        '${job.progressPercentage}%',
+                        style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          );
-        },
-        child: Padding(
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      job.customer?.fullName ?? 'Unknown Customer',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      color: job.statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      job.statusDisplay,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: job.statusColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Icon(Icons.location_on, size: 16.w, color: Colors.grey),
-                  SizedBox(width: 4.w),
-                  Expanded(
-                    child: Text(
-                      job.customer?.address ?? 'No address',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Colors.grey,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Icon(Icons.solar_power, size: 16.w, color: Colors.grey),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${job.panelQuantity}x ${job.panelType}',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12.h),
-              LinearProgressIndicator(
-                value: job.progressPercentage / 100,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  job.progressPercentage == 100
-                      ? const Color(0xFF43A047)
-                      : const Color(0xFF1E88E5),
-                ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                '${job.progressPercentage}% Complete',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 }
+
 class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
 
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  const _QuickActionButton({required this.icon, required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28.w),
-            SizedBox(height: 8.h),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: color,
-                fontWeight: FontWeight.bold,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: color, size: 24.w),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              SizedBox(height: 12.h),
+              Text(
+                label,
+                style: TextStyle(fontSize: 12.sp, color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
