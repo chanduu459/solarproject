@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../providers/providers.dart';
 import '../login_screen.dart';
+import '../owner/settings/settings_exports.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -74,19 +75,34 @@ class ProfileScreen extends ConsumerWidget {
                           _buildActionItem(
                             icon: Icons.person_outline_rounded,
                             title: 'Edit Profile',
-                            onTap: () { /* TODO: Navigate */ },
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                              );
+                            },
                           ),
                           const Divider(height: 1),
                           _buildActionItem(
                             icon: Icons.lock_outline_rounded,
                             title: 'Change Password',
-                            onTap: () { /* TODO: Navigate */ },
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                              );
+                            },
                           ),
                           const Divider(height: 1),
                           _buildActionItem(
                             icon: Icons.notifications_none_rounded,
                             title: 'Notifications',
-                            onTap: () { /* TODO: Navigate */ },
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -94,7 +110,7 @@ class ProfileScreen extends ConsumerWidget {
 
                     SizedBox(height: 32.h),
 
-                    // --- App Settings ---
+                    // --- System Settings ---
                     _buildSectionTitle('SYSTEM'),
                     SizedBox(height: 12.h),
                     Container(
@@ -105,18 +121,6 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildActionItem(
-                            icon: Icons.help_outline_rounded,
-                            title: 'Help & Support',
-                            onTap: () { /* TODO: Navigate */ },
-                          ),
-                          const Divider(height: 1),
-                          _buildActionItem(
-                            icon: Icons.shield_outlined,
-                            title: 'Privacy Policy',
-                            onTap: () { /* TODO: Navigate */ },
-                          ),
-                          const Divider(height: 1),
                           _buildActionItem(
                             icon: Icons.info_outline_rounded,
                             title: 'About App',
@@ -169,7 +173,7 @@ class ProfileScreen extends ConsumerWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -192,7 +196,7 @@ class ProfileScreen extends ConsumerWidget {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A237E).withOpacity(0.1),
+            color: const Color(0xFF1A237E).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: Text(
@@ -279,7 +283,7 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             Container(
               padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(color: const Color(0xFF1A237E).withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: const Color(0xFF1A237E).withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(Icons.solar_power_rounded, size: 56.w, color: const Color(0xFF1A237E)),
             ),
             SizedBox(height: 24.h),

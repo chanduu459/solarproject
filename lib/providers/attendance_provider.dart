@@ -19,12 +19,13 @@ class AttendanceState {
   AttendanceState copyWith({
     List<AttendanceModel>? attendanceRecords,
     AttendanceModel? activeAttendance,
+    bool clearActiveAttendance = false,
     bool? isLoading,
     String? error,
   }) {
     return AttendanceState(
       attendanceRecords: attendanceRecords ?? this.attendanceRecords,
-      activeAttendance: activeAttendance ?? this.activeAttendance,
+      activeAttendance: clearActiveAttendance ? null : (activeAttendance ?? this.activeAttendance),
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -74,7 +75,11 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
   Future<void> loadActiveAttendance(String workerId) async {
     try {
       final activeAttendance = await _attendanceService.getActiveAttendance(workerId);
-      state = state.copyWith(activeAttendance: activeAttendance);
+      if (activeAttendance != null) {
+        state = state.copyWith(activeAttendance: activeAttendance);
+      } else {
+        state = state.copyWith(clearActiveAttendance: true);
+      }
     } catch (e) {
       print('Error loading active attendance: $e');
     }
@@ -136,7 +141,7 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
       }).toList();
 
       state = state.copyWith(
-        activeAttendance: null,
+        clearActiveAttendance: true,
         attendanceRecords: updatedRecords,
         isLoading: false,
       );
