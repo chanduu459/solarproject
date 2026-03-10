@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../providers/providers.dart';
 import '../widgets/worker_card.dart';
+import '../widgets/worker_details_sheet.dart';
 import '../dialogs/add_worker_dialog.dart';
+import '../dialogs/edit_worker_dialog.dart';
 
 class WorkersTab extends ConsumerStatefulWidget {
   const WorkersTab({super.key});
@@ -116,13 +118,14 @@ class _WorkersTabState extends ConsumerState<WorkersTab> {
                     itemCount: filteredWorkers.length,
                     itemBuilder: (context, index) {
                       final worker = filteredWorkers[index];
-                      return WorkerCard(
-                        worker: worker,
-                        onEdit: () {
-                          // TODO: Implement edit worker
-                        },
-                        onDelete: () => _showDeleteConfirmation(context, worker.id),
-                        onStatusChange: (newStatus) => _toggleWorkerStatus(worker.id, newStatus),
+                      return GestureDetector(
+                        onTap: () => _showWorkerDetails(worker),
+                        child: WorkerCard(
+                          worker: worker,
+                          onEdit: () => _showEditWorkerDialog(worker),
+                          onDelete: () => _showDeleteConfirmation(context, worker.id),
+                          onStatusChange: (newStatus) => _toggleWorkerStatus(worker.id, newStatus),
+                        ),
                       );
                     },
                   );
@@ -594,6 +597,22 @@ class _WorkersTabState extends ConsumerState<WorkersTab> {
 
   void _toggleWorkerStatus(String workerId, bool newStatus) {
     ref.read(workersProvider.notifier).toggleWorkerStatus(workerId, newStatus);
+  }
+
+  void _showWorkerDetails(dynamic worker) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WorkerDetailsSheet(worker: worker),
+    );
+  }
+
+  void _showEditWorkerDialog(dynamic worker) {
+    showDialog(
+      context: context,
+      builder: (context) => EditWorkerDialog(worker: worker),
+    );
   }
 
   void _showDeleteConfirmation(BuildContext context, String workerId) {

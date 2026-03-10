@@ -756,13 +756,13 @@ class _JobsTabState extends ConsumerState<JobsTab> {
             Text(issue.issueType, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
             SizedBox(height: 6.h),
             Text(issue.description, style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700), maxLines: 3, overflow: TextOverflow.ellipsis),
-            if (issue.workerName != null) ...[
+            if (issue.reportedBy != null || issue.workerName != null) ...[
               SizedBox(height: 10.h),
               Row(
                 children: [
                   Icon(Icons.person_outline, size: 14.w, color: Colors.grey.shade500),
                   SizedBox(width: 4.w),
-                  Text('Reported by: ${issue.workerName}', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
+                  Text('Reported by: ${issue.reportedBy ?? issue.workerName ?? 'Unknown'}', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
                 ],
               ),
             ],

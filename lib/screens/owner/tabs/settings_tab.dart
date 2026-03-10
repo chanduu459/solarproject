@@ -127,55 +127,6 @@ class SettingsTab extends ConsumerWidget {
 
                     SizedBox(height: 32.h),
 
-                    // --- Business Settings ---
-                    _buildSectionTitle('BUSINESS SETTINGS'),
-                    SizedBox(height: 12.h),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildActionItem(
-                            icon: Icons.business_rounded,
-                            title: 'Company Profile',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1),
-                          _buildActionItem(
-                            icon: Icons.attach_money_rounded,
-                            title: 'Pricing & Rates',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const PricingRatesScreen()),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1),
-                          _buildActionItem(
-                            icon: Icons.inventory_2_outlined,
-                            title: 'Inventory Management',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const InventoryManagementScreen()),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 32.h),
-
                     // --- System Settings ---
                     _buildSectionTitle('SYSTEM'),
                     SizedBox(height: 12.h),
@@ -187,28 +138,6 @@ class SettingsTab extends ConsumerWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildActionItem(
-                            icon: Icons.help_outline_rounded,
-                            title: 'Help & Support',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1),
-                          _buildActionItem(
-                            icon: Icons.shield_outlined,
-                            title: 'Privacy Policy',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1),
                           _buildActionItem(
                             icon: Icons.info_outline_rounded,
                             title: 'About App',

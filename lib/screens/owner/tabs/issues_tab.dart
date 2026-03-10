@@ -854,12 +854,14 @@ class _IssueDetailsDialog extends ConsumerWidget {
   Future<void> _updateStatus(BuildContext context, WidgetRef ref, String status) async {
     try {
       await ref.read(issuesProvider.notifier).updateIssueStatus(issueId: issue.id, status: status);
+      // Reload all issues to refresh the UI
+      await ref.read(issuesProvider.notifier).loadAllIssues();
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to ${_getStatusDisplay(status)}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to ${_getStatusDisplay(status)}'), backgroundColor: const Color(0xFF2E7D32)));
       }
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -886,13 +888,15 @@ class _IssueDetailsDialog extends ConsumerWidget {
             onPressed: () async {
               try {
                 await ref.read(issuesProvider.notifier).updateIssueStatus(issueId: issue.id, status: 'resolved', resolutionNotes: notesController.text.trim());
+                // Reload all issues to refresh the UI
+                await ref.read(issuesProvider.notifier).loadAllIssues();
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
                 if (context.mounted) {
                   Navigator.pop(context); // Close bottom sheet
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Issue resolved successfully')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Issue resolved successfully'), backgroundColor: Color(0xFF2E7D32)));
                 }
               } catch (e) {
-                if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text('Failed to resolve: $e')));
+                if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text('Failed to resolve: $e'), backgroundColor: Colors.red));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r))),

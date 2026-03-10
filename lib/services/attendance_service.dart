@@ -225,6 +225,20 @@ class AttendanceService {
       final startOfDay = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
       final endOfDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 1)).toUtc().toIso8601String();
 
+      // Get all active workers (role = 'worker' and is_active = true) - exclude owners
+      final activeWorkersResponse = await _supabase
+          .from('workers')
+          .select('id')
+          .eq('role', 'worker')
+          .eq('is_active', true);
+
+      final validWorkerIds = activeWorkersResponse
+          .map((r) => r['id'] as String)
+          .toSet();
+
+      // Total active workers in system (role = 'worker' and is_active = true)
+      final totalActiveWorkers = validWorkerIds.length;
+
       // Get workers with jobs in progress (truly active workers)
       final workersWithInProgressJobs = await _supabase
           .from('jobs')
@@ -234,6 +248,7 @@ class AttendanceService {
       final activeWorkerIds = workersWithInProgressJobs
           .where((r) => r['worker_id'] != null)
           .map((r) => r['worker_id'] as String)
+          .where((id) => validWorkerIds.contains(id)) // Only count valid workers
           .toSet();
 
       // Also get workers checked in today from attendance
@@ -245,6 +260,7 @@ class AttendanceService {
 
       final checkedInWorkerIds = checkedInTodayResponse
           .map((r) => r['worker_id'] as String)
+          .where((id) => validWorkerIds.contains(id)) // Only count valid workers
           .toSet();
 
       // Combine both sets - workers are active if they have in_progress jobs OR checked in today
@@ -258,11 +274,13 @@ class AttendanceService {
 
       final currentlyCheckedIn = currentlyCheckedInResponse
           .map((r) => r['worker_id'] as String)
+          .where((id) => validWorkerIds.contains(id)) // Only count valid workers
           .toSet()
           .length;
 
       return {
-        'workers_active_today': allActiveWorkerIds.length,
+        'total_active_workers': totalActiveWorkers, // All workers with is_active=true
+        'workers_active_today': allActiveWorkerIds.length, // Workers working today
         'currently_checked_in': currentlyCheckedIn,
       };
     } catch (e) {

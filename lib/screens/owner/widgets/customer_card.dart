@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../models/customer_model.dart';
+import 'customer_details_sheet.dart';
 
 /// Modern professional enterprise-style customer card for solar installation management
 class CustomerCard extends StatefulWidget {
@@ -15,9 +16,19 @@ class CustomerCard extends StatefulWidget {
 class _CustomerCardState extends State<CustomerCard> with SingleTickerProviderStateMixin {
   bool _isPressed = false;
 
+  void _showCustomerDetails() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CustomerDetailsSheet(customer: widget.customer),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: _showCustomerDetails,
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),

@@ -53,16 +53,18 @@ class WorkersNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
         avatarUrl: avatarUrl,
       );
 
-      // Update state with new worker
-      final currentWorkers = state.maybeWhen(
-        data: (workers) => [...workers],
-        orElse: () => <UserModel>[],
-      );
+      // Reload all workers to ensure fresh data after session restoration
+      await loadAllWorkers();
 
-      state = AsyncValue.data([newWorker, ...currentWorkers]);
       return newWorker;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      // Try to reload workers even on error to restore the list
+      try {
+        await loadAllWorkers();
+      } catch (_) {
+        // If reload also fails, set error state
+        state = AsyncValue.error(e, StackTrace.current);
+      }
       rethrow;
     }
   }

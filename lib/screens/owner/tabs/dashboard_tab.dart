@@ -201,12 +201,17 @@ class DashboardTab extends StatelessWidget {
 
   Widget _buildHorizontalMetricsBar() {
     final metrics = [
-      {'title': 'Active Workers', 'value': statistics['workers_active_today']?.toString() ?? '0', 'icon': Icons.engineering_outlined, 'color': const Color(0xFF1E88E5)},
+      {'title': 'Active Workers', 'value': statistics['total_active_workers']?.toString() ?? '0', 'icon': Icons.engineering_outlined, 'color': const Color(0xFF1E88E5)},
       {'title': 'Jobs Today', 'value': statistics['total_jobs']?.toString() ?? '0', 'icon': Icons.solar_power_outlined, 'color': const Color(0xFF43A047)},
       {'title': 'In Progress', 'value': statistics['in_progress_jobs']?.toString() ?? '0', 'icon': Icons.sync, 'color': const Color(0xFF8E24AA)},
       {'title': 'Completed', 'value': statistics['completed_jobs']?.toString() ?? '0', 'icon': Icons.task_alt, 'color': const Color(0xFF00C853)},
       {'title': 'Pending', 'value': statistics['pending_jobs']?.toString() ?? '0', 'icon': Icons.hourglass_empty, 'color': const Color(0xFFFFA726)},
-      {'title': 'Issues', 'value': statistics['open_issues']?.toString() ?? '0', 'icon': Icons.error_outline, 'color': const Color(0xFFD50000)},
+      {
+        'title': 'Issues',
+        'value': ((statistics['open_issues'] ?? 0) + (statistics['in_progress_issues'] ?? 0)).toString(),
+        'icon': Icons.error_outline,
+        'color': const Color(0xFFD50000)
+      },
     ];
 
     return SingleChildScrollView(

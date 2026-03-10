@@ -48,5 +48,12 @@ class CustomerService {
 
     return CustomerModel.fromJson(response as Map<String, dynamic>);
   }
+
+  Future<void> deleteCustomer(String customerId) async {
+    await _supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+  }
 }
 

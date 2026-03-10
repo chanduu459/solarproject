@@ -61,4 +61,23 @@ class CustomersNotifier extends StateNotifier<AsyncValue<List<CustomerModel>>> {
       rethrow;
     }
   }
+
+  Future<void> deleteCustomer(String customerId) async {
+    try {
+      await _customerService.deleteCustomer(customerId);
+
+      final currentCustomers = state.when(
+        data: (customers) => customers,
+        loading: () => <CustomerModel>[],
+        error: (_, __) => <CustomerModel>[],
+      );
+
+      state = AsyncValue.data(
+        currentCustomers.where((c) => c.id != customerId).toList(),
+      );
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
 }

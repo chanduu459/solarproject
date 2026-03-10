@@ -4,12 +4,13 @@ import '../models/user_model.dart';
 class WorkerService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // Get all workers
+  // Get all workers (excluding owners)
   Future<List<UserModel>> getAllWorkers() async {
     try {
       final response = await _supabase
           .from('workers')
           .select()
+          .eq('role', 'worker')
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -20,12 +21,13 @@ class WorkerService {
     }
   }
 
-  // Get active workers only
+  // Get active workers only (excluding owners)
   Future<List<UserModel>> getActiveWorkers() async {
     try {
       final response = await _supabase
           .from('workers')
           .select()
+          .eq('role', 'worker')
           .eq('is_active', true)
           .order('created_at', ascending: false);
 
@@ -63,8 +65,18 @@ class WorkerService {
     String? phone,
     String? avatarUrl,
   }) async {
+    // Store the current owner's session before creating new user
+    final currentSession = _supabase.auth.currentSession;
+
+    if (currentSession == null) {
+      throw Exception('No active session. Please login again.');
+    }
+
+    final ownerRefreshToken = currentSession.refreshToken;
+    String? newUserId;
+
     try {
-      // First, create the auth user
+      // Create the auth user for the new worker
       final authResponse = await _supabase.auth.signUp(
         email: email,
         password: password,
@@ -74,14 +86,20 @@ class WorkerService {
         throw Exception('Failed to create authentication user');
       }
 
-      final userId = authResponse.user!.id;
+      newUserId = authResponse.user!.id;
 
-      // Then create the worker record
+      // Restore the owner's session immediately
+      if (ownerRefreshToken != null) {
+        await _supabase.auth.setSession(ownerRefreshToken);
+      }
+
+      // Now create the worker record as the owner
+      // Note: role is always 'worker' for new workers (database constraint)
       await _supabase.from('workers').insert({
-        'id': userId,
+        'id': newUserId,
         'email': email,
         'full_name': fullName,
-        'role': role,
+        'role': 'worker', // Always 'worker' - job title is stored elsewhere or in notes
         'phone': phone,
         'avatar_url': avatarUrl,
         'created_at': DateTime.now().toIso8601String(),
@@ -92,11 +110,19 @@ class WorkerService {
       final response = await _supabase
           .from('workers')
           .select()
-          .eq('id', userId)
+          .eq('id', newUserId)
           .single();
 
-      return UserModel.fromJson(response as Map<String, dynamic>);
+      return UserModel.fromJson(response);
     } catch (e) {
+      // Try to restore owner session if something went wrong
+      if (ownerRefreshToken != null) {
+        try {
+          await _supabase.auth.setSession(ownerRefreshToken);
+        } catch (_) {
+          // Ignore session restoration errors in error handler
+        }
+      }
       throw Exception('Failed to add worker: $e');
     }
   }
@@ -130,7 +156,7 @@ class WorkerService {
           .eq('id', workerId)
           .single();
 
-      return UserModel.fromJson(response as Map<String, dynamic>);
+      return UserModel.fromJson(response);
     } catch (e) {
       throw Exception('Failed to update worker: $e');
     }
@@ -160,7 +186,7 @@ class WorkerService {
           .eq('id', workerId)
           .single();
 
-      return UserModel.fromJson(response as Map<String, dynamic>);
+      return UserModel.fromJson(response);
     } catch (e) {
       throw Exception('Failed to toggle worker status: $e');
     }
