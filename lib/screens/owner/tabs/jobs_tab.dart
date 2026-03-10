@@ -170,6 +170,227 @@ class _JobsTabState extends ConsumerState<JobsTab> {
     );
   }
 
+  void _showJobDetailsSheet(JobModel job) {
+    final customer = job.customer;
+    final workerName = job.workerName ?? 'Unassigned';
+    final isUnassigned = job.workerId == null;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          ),
+          padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 24.h + MediaQuery.of(context).padding.bottom),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag Handle
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    margin: EdgeInsets.only(bottom: 20.h),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                ),
+
+                // Header with Status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Job Details',
+                      style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A)),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: job.statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        job.statusDisplay,
+                        style: TextStyle(fontSize: 12.sp, color: job.statusColor, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24.h),
+
+                // Customer Section
+                _buildDetailSection(
+                  title: 'CUSTOMER DETAILS',
+                  icon: Icons.person_rounded,
+                  iconColor: const Color(0xFF1A237E),
+                  children: [
+                    _buildDetailRow('Name', customer?.fullName ?? 'Unknown'),
+                    _buildDetailRow('Phone', customer?.phone ?? 'N/A'),
+                    _buildDetailRow('Email', customer?.email ?? 'N/A'),
+                    _buildDetailRow('Address', customer?.fullAddress ?? 'N/A'),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+
+                // Assigned Worker Section
+                _buildDetailSection(
+                  title: 'ASSIGNED WORKER',
+                  icon: Icons.engineering_rounded,
+                  iconColor: isUnassigned ? Colors.red.shade400 : const Color(0xFF2E7D32),
+                  children: [
+                    _buildDetailRow(
+                      'Worker',
+                      workerName,
+                      valueColor: isUnassigned ? Colors.red.shade600 : null,
+                    ),
+                    if (!isUnassigned) _buildDetailRow('Status', 'Active'),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+
+                // Job Info Section
+                _buildDetailSection(
+                  title: 'JOB INFORMATION',
+                  icon: Icons.solar_power_rounded,
+                  iconColor: const Color(0xFFFF9800),
+                  children: [
+                    _buildDetailRow('Panel Type', job.panelType),
+                    _buildDetailRow('Quantity', '${job.panelQuantity} panels'),
+                    _buildDetailRow('Scheduled Date', job.scheduledDate.toLocal().toString().split(' ').first),
+                    _buildDetailRow('Progress', '${job.progressPercentage}%'),
+                    if (job.priority != null) _buildDetailRow('Priority', job.priority!.toUpperCase()),
+                    if (job.notes != null && job.notes!.isNotEmpty) _buildDetailRow('Notes', job.notes!),
+                  ],
+                ),
+                SizedBox(height: 24.h),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                        ),
+                        child: Text('Close', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          final workers = ref.read(workersProvider).asData?.value ?? [];
+                          _showAssignSheet(job, workers);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A237E),
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          isUnassigned ? 'Assign Worker' : 'Reassign',
+                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailSection({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(icon, size: 18.w, color: iconColor),
+              ),
+              SizedBox(width: 10.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100.w,
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final jobsState = ref.watch(jobsProvider);
@@ -339,88 +560,91 @@ class _JobsTabState extends ConsumerState<JobsTab> {
     final assignedLabel = job.workerName ?? 'Unassigned';
     final isUnassigned = job.workerId == null;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: job.statusColor, width: 6.w)),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(customerName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                      decoration: BoxDecoration(color: job.statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
-                      child: Text(job.statusDisplay, style: TextStyle(fontSize: 11.sp, color: job.statusColor, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-                const Divider(height: 1),
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.calendar_today_rounded, size: 14.w, color: Colors.grey.shade500),
-                              SizedBox(width: 6.w),
-                              Text(scheduledDate, style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
-                            ],
-                          ),
-                          SizedBox(height: 8.h),
-                          Row(
-                            children: [
-                              Icon(Icons.engineering_rounded, size: 14.w, color: isUnassigned ? Colors.red.shade400 : Colors.grey.shade500),
-                              SizedBox(width: 6.w),
-                              Text(
-                                  assignedLabel,
-                                  style: TextStyle(
-                                      fontSize: 13.sp,
-                                      color: isUnassigned ? Colors.red.shade600 : Colors.grey.shade700,
-                                      fontWeight: isUnassigned ? FontWeight.bold : FontWeight.w500
-                                  )
-                              ),
-                            ],
-                          ),
-                        ],
+    return GestureDetector(
+      onTap: () => _showJobDetailsSheet(job),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16.r),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: job.statusColor, width: 6.w)),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(customerName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: workersAsync.maybeWhen(
-                        data: (workerList) => () => _showAssignSheet(job, workerList),
-                        orElse: () => null,
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                        decoration: BoxDecoration(color: job.statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
+                        child: Text(job.statusDisplay, style: TextStyle(fontSize: 11.sp, color: job.statusColor, fontWeight: FontWeight.bold)),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isUnassigned ? const Color(0xFF1A237E) : Colors.grey.shade100,
-                        foregroundColor: isUnassigned ? Colors.white : const Color(0xFF1A237E),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  const Divider(height: 1),
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today_rounded, size: 14.w, color: Colors.grey.shade500),
+                                SizedBox(width: 6.w),
+                                Text(scheduledDate, style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                            SizedBox(height: 8.h),
+                            Row(
+                              children: [
+                                Icon(Icons.engineering_rounded, size: 14.w, color: isUnassigned ? Colors.red.shade400 : Colors.grey.shade500),
+                                SizedBox(width: 6.w),
+                                Text(
+                                    assignedLabel,
+                                    style: TextStyle(
+                                        fontSize: 13.sp,
+                                        color: isUnassigned ? Colors.red.shade600 : Colors.grey.shade700,
+                                        fontWeight: isUnassigned ? FontWeight.bold : FontWeight.w500
+                                    )
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Text(isUnassigned ? 'Assign' : 'Reassign', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ],
+                      ElevatedButton(
+                        onPressed: workersAsync.maybeWhen(
+                          data: (workerList) => () => _showAssignSheet(job, workerList),
+                          orElse: () => null,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isUnassigned ? const Color(0xFF1A237E) : Colors.grey.shade100,
+                          foregroundColor: isUnassigned ? Colors.white : const Color(0xFF1A237E),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        ),
+                        child: Text(isUnassigned ? 'Assign' : 'Reassign', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

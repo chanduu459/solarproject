@@ -34,6 +34,20 @@ class _AddCustomerFormState extends ConsumerState<AddCustomerForm> {
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
   final _notesController = TextEditingController();
+  final _panelTypeController = TextEditingController();
+  final _panelQuantityController = TextEditingController(text: '1');
+
+  String? _selectedWorkerId;
+  DateTime? _scheduledDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load workers when form initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(workersProvider.notifier).loadActiveWorkers();
+    });
+  }
 
   @override
   void dispose() {
@@ -47,7 +61,23 @@ class _AddCustomerFormState extends ConsumerState<AddCustomerForm> {
     _latController.dispose();
     _lngController.dispose();
     _notesController.dispose();
+    _panelTypeController.dispose();
+    _panelQuantityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectScheduledDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _scheduledDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _scheduledDate = picked;
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -64,6 +94,11 @@ class _AddCustomerFormState extends ConsumerState<AddCustomerForm> {
       'latitude': double.tryParse(_latController.text.trim()),
       'longitude': double.tryParse(_lngController.text.trim()),
       'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      // Job assignment fields
+      'assigned_worker_id': _selectedWorkerId,
+      'panel_type': _panelTypeController.text.trim().isEmpty ? null : _panelTypeController.text.trim(),
+      'panel_quantity': int.tryParse(_panelQuantityController.text.trim()) ?? 1,
+      'scheduled_date': _scheduledDate,
     };
 
     await widget.onSubmit(data);
@@ -257,6 +292,71 @@ class _AddCustomerFormState extends ConsumerState<AddCustomerForm> {
               minLines: 3,
             ),
 
+            SizedBox(height: 32.h),
+
+            // ─── Assign Worker ───
+            _buildSectionHeader('Job Assignment (Optional)'),
+            SizedBox(height: 12.h),
+            _buildWorkerDropdown(),
+
+            SizedBox(height: 16.h),
+
+            // Panel Type
+            _buildField(
+              controller: _panelTypeController,
+              label: 'Panel Type',
+              hint: 'e.g., Monocrystalline, Polycrystalline',
+              prefixIcon: Icons.solar_power_rounded,
+            ),
+
+            SizedBox(height: 16.h),
+
+            // Panel Quantity
+            _buildField(
+              controller: _panelQuantityController,
+              label: 'Panel Quantity',
+              hint: '1',
+              prefixIcon: Icons.format_list_numbered_rounded,
+              keyboardType: TextInputType.number,
+            ),
+
+            SizedBox(height: 16.h),
+
+            // Scheduled Date
+            GestureDetector(
+              onTap: _selectScheduledDate,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded, size: 22.w, color: Colors.grey.shade600),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Text(
+                        _scheduledDate != null
+                            ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}'
+                            : 'Select Scheduled Date (Optional)',
+                        style: TextStyle(
+                          fontSize: 15.5.sp,
+                          color: _scheduledDate != null ? Colors.black87 : Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    if (_scheduledDate != null)
+                      GestureDetector(
+                        onTap: () => setState(() => _scheduledDate = null),
+                        child: Icon(Icons.clear_rounded, size: 20.w, color: Colors.grey.shade500),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
             SizedBox(height: 48.h),
 
             // ─── Action Button ───
@@ -364,6 +464,148 @@ class _AddCustomerFormState extends ConsumerState<AddCustomerForm> {
       ),
     );
   }
+
+  Widget _buildWorkerDropdown() {
+    final workersAsync = ref.watch(workersProvider);
+
+    return workersAsync.when(
+      data: (workers) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedWorkerId,
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: EdgeInsets.only(left: 4.w),
+                child: Icon(Icons.person_outline_rounded, size: 22.w),
+              ),
+              prefixIconConstraints: BoxConstraints(minWidth: 48.w),
+              hintText: 'Select Worker (Optional)',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 15.5.sp,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 18.h,
+              ),
+            ),
+            isExpanded: true,
+            dropdownColor: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            items: [
+              DropdownMenuItem<String>(
+                value: null,
+                child: Text(
+                  'No Worker Assigned',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 15.5.sp,
+                  ),
+                ),
+              ),
+              ...workers.map((worker) => DropdownMenuItem<String>(
+                value: worker.id,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16.r,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                      child: Text(
+                        worker.fullName.isNotEmpty ? worker.fullName[0].toUpperCase() : 'W',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.sp,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            worker.fullName,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (worker.phone != null && worker.phone!.isNotEmpty)
+                            Text(
+                              worker.phone!,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedWorkerId = value;
+              });
+            },
+          ),
+        );
+      },
+      loading: () => Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20.w,
+              height: 20.w,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12.w),
+            Text(
+              'Loading workers...',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 15.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (_, __) => Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade400, size: 20.w),
+            SizedBox(width: 12.w),
+            Text(
+              'Failed to load workers',
+              style: TextStyle(color: Colors.red.shade700, fontSize: 15.sp),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ────────────────────────────────────────────────
@@ -383,7 +625,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(customersProvider.notifier).addCustomer(
+      // 1. First create the customer
+      final newCustomer = await ref.read(customersProvider.notifier).addCustomer(
         fullName: data['full_name'] as String,
         email: data['email'] as String,
         phone: data['phone'] as String,
@@ -396,6 +639,22 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
         notes: data['notes'] as String?,
       );
 
+      // 2. If worker is assigned, create a job in jobs table
+      final workerId = data['assigned_worker_id'] as String?;
+      final panelType = data['panel_type'] as String?;
+      final panelQuantity = data['panel_quantity'] as int? ?? 1;
+      final scheduledDate = data['scheduled_date'] as DateTime?;
+
+      if (workerId != null && workerId.isNotEmpty) {
+        await ref.read(jobsProvider.notifier).addJob(
+          customerId: newCustomer.id,
+          workerId: workerId,
+          panelType: panelType ?? 'Standard Panel',
+          panelQuantity: panelQuantity,
+          scheduledDate: scheduledDate ?? DateTime.now(),
+        );
+      }
+
       if (!mounted) return;
 
       Navigator.pop(context);
@@ -405,7 +664,9 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
             children: [
               Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
               SizedBox(width: 12.w),
-              const Text('Customer added successfully'),
+              Text(workerId != null
+                ? 'Customer added & job assigned successfully'
+                : 'Customer added successfully'),
             ],
           ),
           backgroundColor: const Color(0xFF00C853),
