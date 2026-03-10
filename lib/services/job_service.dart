@@ -86,22 +86,30 @@ class JobService {
       final startOfDay = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
       final endOfDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 1)).toUtc().toIso8601String();
 
-      final results = await Future.wait([
-        _supabase.from('jobs').count(CountOption.exact),
-        _supabase.from('jobs')
-            .count(CountOption.exact)
-            .eq('status', 'completed')
-            .gte('completed_at', startOfDay)
-            .lt('completed_at', endOfDay),
-        _supabase.from('jobs').count(CountOption.exact).eq('status', 'pending'),
-        _supabase.from('jobs').count(CountOption.exact).eq('status', 'in_progress'),
-      ]);
+      // Get total jobs count
+      final totalJobs = await _supabase.from('jobs').count(CountOption.exact);
+
+      // Get filtered counts using select and counting locally
+      final pendingResponse = await _supabase.from('jobs').select('id').eq('status', 'pending');
+      final inProgressResponse = await _supabase.from('jobs').select('id').eq('status', 'in_progress');
+
+      // Get ALL completed jobs (for pie chart and overall stats)
+      final completedResponse = await _supabase.from('jobs').select('id').eq('status', 'completed');
+
+      // Get completed today (for the "Completed Today" metric card)
+      final completedTodayResponse = await _supabase
+          .from('jobs')
+          .select('id')
+          .eq('status', 'completed')
+          .gte('completed_at', startOfDay)
+          .lt('completed_at', endOfDay);
 
       return {
-        'total_jobs': results[0],
-        'completed_today': results[1],
-        'pending_jobs': results[2],
-        'in_progress_jobs': results[3],
+        'total_jobs': totalJobs,
+        'pending_jobs': (pendingResponse as List).length,
+        'in_progress_jobs': (inProgressResponse as List).length,
+        'completed_jobs': (completedResponse as List).length,  // Total completed jobs
+        'completed_today': (completedTodayResponse as List).length,  // Completed today
       };
     } catch (e) {
       throw Exception('Failed to get job statistics: $e');

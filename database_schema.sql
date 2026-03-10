@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS issue_reports (
     priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
     status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved')),
     reported_at TIMESTAMPTZ DEFAULT NOW(),
+    reported_by TEXT,
     resolved_at TIMESTAMPTZ,
     resolved_by UUID REFERENCES workers(id),
     resolution_notes TEXT,

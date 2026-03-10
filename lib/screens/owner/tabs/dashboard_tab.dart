@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../dialogs/add_worker_dialog.dart';
+import 'settings_tab.dart';
 
 class DashboardTab extends StatelessWidget {
   final Map<String, dynamic> statistics;
@@ -87,6 +88,11 @@ class DashboardTab extends StatelessWidget {
             onSelected: (value) {
               if (value == 'notifications') {
                 // TODO: Show notifications
+              } else if (value == 'settings') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsTab()),
+                );
               } else if (value == 'logout') {
                 onLogout();
               }
@@ -99,6 +105,17 @@ class DashboardTab extends StatelessWidget {
                     Icon(Icons.notifications_outlined, color: Colors.grey.shade800, size: 20.sp),
                     SizedBox(width: 12.w),
                     Text('Notifications', style: TextStyle(fontSize: 14.sp, color: const Color(0xFF263238), fontFamily: 'Roboto')),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined, color: Colors.grey.shade800, size: 20.sp),
+                    SizedBox(width: 12.w),
+                    Text('Settings', style: TextStyle(fontSize: 14.sp, color: const Color(0xFF263238), fontFamily: 'Roboto')),
                   ],
                 ),
               ),
@@ -187,7 +204,7 @@ class DashboardTab extends StatelessWidget {
       {'title': 'Active Workers', 'value': statistics['workers_active_today']?.toString() ?? '0', 'icon': Icons.engineering_outlined, 'color': const Color(0xFF1E88E5)},
       {'title': 'Jobs Today', 'value': statistics['total_jobs']?.toString() ?? '0', 'icon': Icons.solar_power_outlined, 'color': const Color(0xFF43A047)},
       {'title': 'In Progress', 'value': statistics['in_progress_jobs']?.toString() ?? '0', 'icon': Icons.sync, 'color': const Color(0xFF8E24AA)},
-      {'title': 'Completed', 'value': statistics['completed_today']?.toString() ?? '0', 'icon': Icons.task_alt, 'color': const Color(0xFF00C853)},
+      {'title': 'Completed', 'value': statistics['completed_jobs']?.toString() ?? '0', 'icon': Icons.task_alt, 'color': const Color(0xFF00C853)},
       {'title': 'Pending', 'value': statistics['pending_jobs']?.toString() ?? '0', 'icon': Icons.hourglass_empty, 'color': const Color(0xFFFFA726)},
       {'title': 'Issues', 'value': statistics['open_issues']?.toString() ?? '0', 'icon': Icons.error_outline, 'color': const Color(0xFFD50000)},
     ];
@@ -240,7 +257,7 @@ class DashboardTab extends StatelessWidget {
   }
 
   Widget _buildCompletionDoughnutChart() {
-    final completed = double.tryParse(statistics['completed_today']?.toString() ?? '0') ?? 0;
+    final completed = double.tryParse(statistics['completed_jobs']?.toString() ?? '0') ?? 0;
     final inProgress = double.tryParse(statistics['in_progress_jobs']?.toString() ?? '0') ?? 0;
     final pending = double.tryParse(statistics['pending_jobs']?.toString() ?? '0') ?? 0;
 

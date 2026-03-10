@@ -56,7 +56,6 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
       const WorkersTab(),
       const CustomersTab(), // Your newly redesigned Enterprise Tab!
       const JobsTab(),
-      const IssuesTab(),
     ];
 
     return Scaffold(
@@ -82,7 +81,7 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
           NavigationDestination(
               icon: Icon(Icons.people_outline, color: Colors.black54),
               selectedIcon: Icon(Icons.people, color: Color(0xFF1A237E)),
-              label: 'Workers'
+              label: 'Employees'
           ),
           NavigationDestination(
               icon: Icon(Icons.shopping_cart_outlined, color: Colors.black54),
@@ -93,12 +92,6 @@ class _OwnerDashboardState extends ConsumerState<OwnerDashboard> {
               icon: Icon(Icons.work_outline, color: Colors.black54),
               selectedIcon: Icon(Icons.work, color: Color(0xFF1A237E)),
               label: 'Jobs'
-          ),
-          NavigationDestination(
-              icon: Icon(Icons.report_problem_outlined, color: Colors.black54),
-              // Keeping issues red to signify alerts/attention needed
-              selectedIcon: Icon(Icons.report_problem, color: Color(0xFFD84315)),
-              label: 'Issues'
           ),
         ],
       ),

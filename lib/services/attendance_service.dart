@@ -222,22 +222,35 @@ class AttendanceService {
   Future<Map<String, dynamic>> getAttendanceStatistics() async {
     try {
       final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final startOfDay = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
+      final endOfDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 1)).toUtc().toIso8601String();
 
-      // Get workers checked in today
+      // Get workers with jobs in progress (truly active workers)
+      final workersWithInProgressJobs = await _supabase
+          .from('jobs')
+          .select('worker_id')
+          .eq('status', 'in_progress');
+
+      final activeWorkerIds = workersWithInProgressJobs
+          .where((r) => r['worker_id'] != null)
+          .map((r) => r['worker_id'] as String)
+          .toSet();
+
+      // Also get workers checked in today from attendance
       final checkedInTodayResponse = await _supabase
           .from('attendance')
           .select('worker_id')
-          .gte('check_in_time', startOfDay.toIso8601String())
-          .lt('check_in_time', endOfDay.toIso8601String());
+          .gte('check_in_time', startOfDay)
+          .lt('check_in_time', endOfDay);
 
-      final uniqueWorkers = checkedInTodayResponse
+      final checkedInWorkerIds = checkedInTodayResponse
           .map((r) => r['worker_id'] as String)
-          .toSet()
-          .length;
+          .toSet();
 
-      // Get currently checked in workers
+      // Combine both sets - workers are active if they have in_progress jobs OR checked in today
+      final allActiveWorkerIds = activeWorkerIds.union(checkedInWorkerIds);
+
+      // Get currently checked in workers (active right now via attendance)
       final currentlyCheckedInResponse = await _supabase
           .from('attendance')
           .select('worker_id')
@@ -249,7 +262,7 @@ class AttendanceService {
           .length;
 
       return {
-        'workers_active_today': uniqueWorkers,
+        'workers_active_today': allActiveWorkerIds.length,
         'currently_checked_in': currentlyCheckedIn,
       };
     } catch (e) {

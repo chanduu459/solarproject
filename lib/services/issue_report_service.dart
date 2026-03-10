@@ -196,8 +196,15 @@ class IssueReportService {
           updates['resolution_notes'] = resolutionNotes;
         }
       } else if (status == 'in_progress') {
+        // Clear resolution fields when moving back to in_progress
         updates['resolved_at'] = null;
         updates['resolved_by'] = null;
+        updates['resolution_notes'] = null;
+      } else if (status == 'open') {
+        // Clear all resolution fields when reopening
+        updates['resolved_at'] = null;
+        updates['resolved_by'] = null;
+        updates['resolution_notes'] = null;
       }
 
       final response = await _supabase
@@ -274,16 +281,16 @@ class IssueReportService {
       // making your dashboard load much faster.
       final results = await Future.wait([
         _supabase.from('issue_reports').count(CountOption.exact),
-        _supabase.from('issue_reports').count(CountOption.exact).eq('status', 'open'),
-        _supabase.from('issue_reports').count(CountOption.exact).eq('status', 'in_progress'),
-        _supabase.from('issue_reports').count(CountOption.exact).eq('status', 'resolved'),
+        _supabase.from('issue_reports').select('id').eq('status', 'open'),
+        _supabase.from('issue_reports').select('id').eq('status', 'in_progress'),
+        _supabase.from('issue_reports').select('id').eq('status', 'resolved'),
       ]);
 
       return {
-        'total_issues': results[0],
-        'open_issues': results[1],
-        'in_progress_issues': results[2],
-        'resolved_issues': results[3],
+        'total_issues': results[0] as int,
+        'open_issues': (results[1] as List).length,
+        'in_progress_issues': (results[2] as List).length,
+        'resolved_issues': (results[3] as List).length,
       };
     } catch (e) {
       throw Exception('Failed to get issue statistics: $e');

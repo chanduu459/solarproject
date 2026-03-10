@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/services.dart';
@@ -50,8 +51,10 @@ class IssuesNotifier extends StateNotifier<IssuesState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
       final issues = await _issueService.getAllIssues();
+      debugPrint('IssuesProvider: Loaded ${issues.length} issues');
       state = state.copyWith(issues: issues, isLoading: false);
     } catch (e) {
+      debugPrint('IssuesProvider: Error loading issues: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load issues: $e',

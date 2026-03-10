@@ -5,6 +5,7 @@ import '../../../providers/providers.dart';
 import '../../../models/job_model.dart';
 import '../../../models/user_model.dart';
 import '../../../models/customer_model.dart';
+import '../../../models/issue_report_model.dart';
 import '../dialogs/create_job_dialog.dart';
 
 class JobsTab extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class _JobsTabState extends ConsumerState<JobsTab> {
       ref.read(jobsProvider.notifier).loadAllJobs();
       ref.read(workersProvider.notifier).loadAllWorkers();
       ref.read(customersProvider.notifier).loadAllCustomers();
+      ref.read(issuesProvider.notifier).loadAllIssues();
     });
   }
 
@@ -29,6 +31,7 @@ class _JobsTabState extends ConsumerState<JobsTab> {
     await ref.read(jobsProvider.notifier).loadAllJobs();
     await ref.read(workersProvider.notifier).loadAllWorkers();
     await ref.read(customersProvider.notifier).loadAllCustomers();
+    await ref.read(issuesProvider.notifier).loadAllIssues();
   }
 
   void _showAssignSheet(JobModel job, List<UserModel> workers) {
@@ -396,6 +399,7 @@ class _JobsTabState extends ConsumerState<JobsTab> {
     final jobsState = ref.watch(jobsProvider);
     final workersAsync = ref.watch(workersProvider);
     final customersAsync = ref.watch(customersProvider);
+    final issuesState = ref.watch(issuesProvider);
     final workers = workersAsync.asData?.value;
 
     return Scaffold(
@@ -406,40 +410,6 @@ class _JobsTabState extends ConsumerState<JobsTab> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
-            // Customers "Quick Assign" Section
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
-                    child: Text('Client Quick-Assign', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
-                  ),
-                  SizedBox(
-                    height: 140.h,
-                    child: customersAsync.when(
-                      data: (customers) {
-                        if (customers.isEmpty) {
-                          return Center(child: Text('No customers available', style: TextStyle(color: Colors.grey.shade600)));
-                        }
-                        return ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          itemCount: customers.length,
-                          itemBuilder: (context, index) {
-                            final customer = customers[index];
-                            return _buildCustomerQuickCard(customer, customers, workers);
-                          },
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A237E)))),
-                      error: (_, __) => Center(child: TextButton(onPressed: () => ref.read(customersProvider.notifier).loadAllCustomers(), child: const Text('Retry Loading Customers'))),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
             // Active Jobs Header
             SliverToBoxAdapter(
@@ -471,7 +441,8 @@ class _JobsTabState extends ConsumerState<JobsTab> {
                   delegate: SliverChildBuilderDelegate(
                         (context, index) {
                       final job = jobsState.jobs[index];
-                      return _buildJobCard(job, workersAsync, workers);
+                      final jobIssues = issuesState.issues.where((issue) => issue.jobId == job.id).toList();
+                      return _buildJobCard(job, workersAsync, workers, jobIssues);
                     },
                     childCount: jobsState.jobs.length,
                   ),
@@ -498,67 +469,16 @@ class _JobsTabState extends ConsumerState<JobsTab> {
 
   // --- UI Component Builders ---
 
-  Widget _buildCustomerQuickCard(CustomerModel customer, List<CustomerModel> customers, List<UserModel>? workers) {
-    return Container(
-      width: 220.w,
-      margin: EdgeInsets.only(right: 12.w, bottom: 8.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 16.r,
-                  backgroundColor: const Color(0xFF99D37F).withOpacity(0.2), // Solar Amber
-                  child: Text(customer.fullName[0].toUpperCase(), style: TextStyle(color: const Color(
-                      0xFF3A7066), fontWeight: FontWeight.bold, fontSize: 14.sp)),
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(customer.fullName, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(customer.phone, style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
-                SizedBox(height: 8.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 32.h,
-                  child: OutlinedButton(
-                    onPressed: () => _showCreateJobSheet(customers, workers ?? [], preselectedCustomerId: customer.id),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      side: const BorderSide(color: Color(0xFF1A237E)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                    ),
-                    child: Text('Create Job', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A237E))),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildJobCard(JobModel job, AsyncValue<List<UserModel>> workersAsync, List<UserModel>? workers) {
+  Widget _buildJobCard(JobModel job, AsyncValue<List<UserModel>> workersAsync, List<UserModel>? workers, List<IssueReportModel> jobIssues) {
     final customerName = job.customer?.fullName ?? 'Unknown Customer';
     final scheduledDate = job.scheduledDate.toLocal().toString().split(' ').first;
     final assignedLabel = job.workerName ?? 'Unassigned';
     final isUnassigned = job.workerId == null;
+    final totalIssuesCount = jobIssues.length;
+    final hasIssues = totalIssuesCount > 0;
+    // Check if there are any open/in-progress issues to determine badge color
+    final hasOpenIssues = jobIssues.any((i) => i.status == 'open' || i.status == 'in_progress');
 
     return GestureDetector(
       onTap: () => _showJobDetailsSheet(job),
@@ -584,7 +504,39 @@ class _JobsTabState extends ConsumerState<JobsTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(customerName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(customerName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A)), overflow: TextOverflow.ellipsis),
+                            ),
+                            if (hasIssues) ...[
+                              SizedBox(width: 8.w),
+                              GestureDetector(
+                                onTap: () => _showJobIssuesSheet(job, jobIssues),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    color: hasOpenIssues ? Colors.red.shade50 : Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(color: hasOpenIssues ? Colors.red.shade200 : Colors.green.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        hasOpenIssues ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                                        size: 14.w,
+                                        color: hasOpenIssues ? Colors.red.shade600 : Colors.green.shade600,
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      Text('$totalIssuesCount', style: TextStyle(fontSize: 11.sp, color: hasOpenIssues ? Colors.red.shade600 : Colors.green.shade600, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
@@ -650,6 +602,640 @@ class _JobsTabState extends ConsumerState<JobsTab> {
         ),
       ),
     );
+  }
+
+  void _showJobIssuesSheet(JobModel job, List<IssueReportModel> issues) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag Handle
+              Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(top: 12.h, bottom: 16.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(10.w),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Icon(Icons.warning_amber_rounded, color: Colors.red.shade600, size: 24.w),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Issues for ${job.customer?.fullName ?? 'Job'}', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                          SizedBox(height: 2.h),
+                          Text('${issues.length} issue${issues.length > 1 ? 's' : ''} reported', style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16.h),
+              const Divider(height: 1),
+              // Issues List
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 24.h),
+                  itemCount: issues.length,
+                  itemBuilder: (context, index) {
+                    final issue = issues[index];
+                    return _buildIssueCard(issue);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildIssueCard(IssueReportModel issue) {
+    Color statusColor;
+    String statusText;
+    switch (issue.status) {
+      case 'open':
+        statusColor = Colors.red;
+        statusText = 'Open';
+        break;
+      case 'in_progress':
+        statusColor = Colors.orange;
+        statusText = 'In Progress';
+        break;
+      case 'resolved':
+        statusColor = Colors.green;
+        statusText = 'Resolved';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusText = issue.status;
+    }
+
+    Color priorityColor;
+    switch (issue.priority) {
+      case 'high':
+        priorityColor = Colors.red;
+        break;
+      case 'medium':
+        priorityColor = Colors.orange;
+        break;
+      case 'low':
+        priorityColor = Colors.green;
+        break;
+      default:
+        priorityColor = Colors.grey;
+    }
+
+    return GestureDetector(
+      onTap: () => _showIssueDetailsSheet(issue),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(statusText, style: TextStyle(fontSize: 11.sp, color: statusColor, fontWeight: FontWeight.bold)),
+                ),
+                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(issue.priority.toUpperCase(), style: TextStyle(fontSize: 11.sp, color: priorityColor, fontWeight: FontWeight.bold)),
+                ),
+                const Spacer(),
+                Text(
+                  issue.reportedAt.toLocal().toString().split(' ').first,
+                  style: TextStyle(fontSize: 11.sp, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Text(issue.issueType, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+            SizedBox(height: 6.h),
+            Text(issue.description, style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700), maxLines: 3, overflow: TextOverflow.ellipsis),
+            if (issue.workerName != null) ...[
+              SizedBox(height: 10.h),
+              Row(
+                children: [
+                  Icon(Icons.person_outline, size: 14.w, color: Colors.grey.shade500),
+                  SizedBox(width: 4.w),
+                  Text('Reported by: ${issue.workerName}', style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600)),
+                ],
+              ),
+            ],
+            if (issue.resolutionNotes != null && issue.resolutionNotes!.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 16.w, color: Colors.green.shade600),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(issue.resolutionNotes!, style: TextStyle(fontSize: 12.sp, color: Colors.green.shade700)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showIssueDetailsSheet(IssueReportModel issue) {
+    Color statusColor;
+    String statusText;
+    switch (issue.status) {
+      case 'open':
+        statusColor = Colors.red;
+        statusText = 'Open';
+        break;
+      case 'in_progress':
+        statusColor = Colors.orange;
+        statusText = 'In Progress';
+        break;
+      case 'resolved':
+        statusColor = Colors.green;
+        statusText = 'Resolved';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusText = issue.status;
+    }
+
+    Color priorityColor;
+    String priorityText;
+    switch (issue.priority) {
+      case 'high':
+        priorityColor = Colors.red;
+        priorityText = 'High Priority';
+        break;
+      case 'medium':
+        priorityColor = Colors.orange;
+        priorityText = 'Medium Priority';
+        break;
+      case 'low':
+        priorityColor = Colors.green;
+        priorityText = 'Low Priority';
+        break;
+      default:
+        priorityColor = Colors.grey;
+        priorityText = issue.priority;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 24.h + MediaQuery.of(context).padding.bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      margin: EdgeInsets.only(bottom: 20.h),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+                  ),
+
+                  // Header with Status
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(Icons.warning_amber_rounded, color: statusColor, size: 28.w),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Issue Details', style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))),
+                            SizedBox(height: 4.h),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(statusText, style: TextStyle(fontSize: 11.sp, color: statusColor, fontWeight: FontWeight.bold)),
+                                ),
+                                SizedBox(width: 8.w),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    color: priorityColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(priorityText, style: TextStyle(fontSize: 11.sp, color: priorityColor, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.h),
+
+                  // Issue Type
+                  _buildDetailSection(
+                    title: 'ISSUE TYPE',
+                    icon: Icons.category_rounded,
+                    iconColor: const Color(0xFF1A237E),
+                    children: [
+                      Text(issue.issueType, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Description
+                  _buildDetailSection(
+                    title: 'DESCRIPTION',
+                    icon: Icons.description_rounded,
+                    iconColor: Colors.blueGrey,
+                    children: [
+                      Text(issue.description, style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700, height: 1.5)),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Status Section
+                  _buildDetailSection(
+                    title: 'STATUS',
+                    icon: Icons.info_rounded,
+                    iconColor: statusColor,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(color: statusColor.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8.w,
+                                  height: 8.h,
+                                  decoration: BoxDecoration(
+                                    color: statusColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(statusText, style: TextStyle(fontSize: 14.sp, color: statusColor, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Reporter Info
+                  _buildDetailSection(
+                    title: 'REPORTED BY',
+                    icon: Icons.person_rounded,
+                    iconColor: const Color(0xFF2E7D32),
+                    children: [
+                      _buildDetailRow('Worker', issue.reportedBy ?? issue.workerName ?? 'Unknown'),
+                      _buildDetailRow('Date', issue.reportedAt.toLocal().toString().split(' ').first),
+                      _buildDetailRow('Time', issue.reportedAt.toLocal().toString().split(' ')[1].substring(0, 5)),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Location (if available)
+                  if (issue.latitude != null && issue.longitude != null) ...[
+                    _buildDetailSection(
+                      title: 'LOCATION',
+                      icon: Icons.location_on_rounded,
+                      iconColor: Colors.red,
+                      children: [
+                        _buildDetailRow('Latitude', issue.latitude!.toStringAsFixed(6)),
+                        _buildDetailRow('Longitude', issue.longitude!.toStringAsFixed(6)),
+                      ],
+                    ),
+                    SizedBox(height: 16.h),
+                  ],
+
+                  // Resolution (if resolved)
+                  if (issue.status == 'resolved' && issue.resolutionNotes != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 20.w),
+                              SizedBox(width: 8.w),
+                              Text('RESOLUTION', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: Colors.green.shade700, letterSpacing: 0.5)),
+                            ],
+                          ),
+                          SizedBox(height: 12.h),
+                          Text(issue.resolutionNotes!, style: TextStyle(fontSize: 14.sp, color: Colors.green.shade800, height: 1.5)),
+                          if (issue.resolvedAt != null) ...[
+                            SizedBox(height: 8.h),
+                            Text('Resolved on: ${issue.resolvedAt!.toLocal().toString().split(' ').first}', style: TextStyle(fontSize: 12.sp, color: Colors.green.shade600)),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                  ],
+
+                  // Images (if available)
+                  if (issue.imageUrls != null && issue.imageUrls!.isNotEmpty) ...[
+                    Text('ATTACHED IMAGES', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: Colors.grey.shade600, letterSpacing: 0.5)),
+                    SizedBox(height: 12.h),
+                    SizedBox(
+                      height: 120.h,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: issue.imageUrls!.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            width: 120.w,
+                            margin: EdgeInsets.only(right: 12.w),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12.r),
+                              child: Image.network(
+                                issue.imageUrls![index],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  color: Colors.grey.shade200,
+                                  child: Icon(Icons.broken_image, color: Colors.grey.shade400, size: 40.w),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                  ],
+
+                  // Action Buttons
+                  if (issue.status != 'resolved') ...[
+                    Row(
+                      children: [
+                        if (issue.status == 'open') ...[
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _updateIssueStatus(context, issue, 'in_progress'),
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 14.h),
+                                side: const BorderSide(color: Color(0xFF1E88E5)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                              ),
+                              child: Text('Start Progress', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1E88E5))),
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                        ],
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _showResolveIssueDialog(context, issue),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                            ),
+                            child: Text('Resolve Issue', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
+                  ],
+
+                  // Close Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      ),
+                      child: Text('Close', style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateIssueStatus(BuildContext context, IssueReportModel issue, String status) async {
+    try {
+      await ref.read(issuesProvider.notifier).updateIssueStatus(
+        issueId: issue.id,
+        status: status,
+      );
+      // Reload all issues to refresh the UI
+      await ref.read(issuesProvider.notifier).loadAllIssues();
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Issue status updated to ${_getStatusDisplayText(status)}'),
+            backgroundColor: const Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showResolveIssueDialog(BuildContext context, IssueReportModel issue) {
+    final notesController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: const Color(0xFF2E7D32), size: 24.w),
+            SizedBox(width: 12.w),
+            const Text('Resolve Issue'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Issue: ${issue.issueType}',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
+            ),
+            SizedBox(height: 16.h),
+            TextField(
+              controller: notesController,
+              decoration: InputDecoration(
+                labelText: 'Resolution Notes',
+                hintText: 'Describe how this issue was resolved...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 2),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await ref.read(issuesProvider.notifier).updateIssueStatus(
+                  issueId: issue.id,
+                  status: 'resolved',
+                  resolutionNotes: notesController.text.trim().isNotEmpty
+                      ? notesController.text.trim()
+                      : null,
+                );
+                // Reload all issues to refresh the UI
+                await ref.read(issuesProvider.notifier).loadAllIssues();
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (context.mounted) {
+                  Navigator.pop(context); // Close bottom sheet
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Issue resolved successfully!'),
+                      backgroundColor: Color(0xFF2E7D32),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text('Failed to resolve: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            ),
+            child: const Text('Resolve', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getStatusDisplayText(String status) {
+    switch (status.toLowerCase()) {
+      case 'open': return 'Open';
+      case 'in_progress': return 'In Progress';
+      case 'resolved': return 'Resolved';
+      default: return status;
+    }
   }
 
   Widget _buildEmptyState() {
